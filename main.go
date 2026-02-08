@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -26,6 +27,8 @@ func main() {
 	}
 
 	switch args[0] {
+	case "pallette":
+		pallette()
 	case "flash":
 		if len(args) == 1 {
 			flash_all(green)
@@ -164,5 +167,31 @@ func draw() error {
 		}
 		pos := strings.Split(output, " ")[1]
 		led_on(pos, "30")
+	}
+}
+
+func pallette() {
+	fmt.Println("Filling colors...")
+	k := 0
+	for {
+		start := k
+		for i := range 8 {
+			for j := range 4 {
+				pos := fmt.Sprintf("%d%d", i, j)
+				color := strconv.Itoa(k)
+				led_on(pos, color)
+				k++
+			}
+		}
+		fmt.Printf("Showing %d - %d\n", start, k)
+		for i := range 8 {
+			for j := range 4 {
+				pos := fmt.Sprintf("%d%d", i, j+4)
+				color := strconv.Itoa(k)
+				led_on(pos, color)
+				k++
+			}
+		}
+		time.Sleep(time.Second * 5)
 	}
 }
