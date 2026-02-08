@@ -1,0 +1,22 @@
+monitor inputs: amidi -d -p hw:0,0,0
+
+INPUTS
+
+3 parts - AA BB CC
+
+first 2 either top row or main grid / right collum n
+top row = B0
+grid + right = 90
+
+
+second 2 index of button
+	first is row index
+	second is collumn index
+EXCEPTION: top row is 68-6F
+
+
+last 2 relate to pressed or released
+pressed = 7F
+released = 00
+
+
