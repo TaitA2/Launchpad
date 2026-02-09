@@ -21,6 +21,12 @@ func main() {
 	lp := getLaunchpad()
 
 	// start launchpad
-	lp.start()
+	for range 3 {
+		lp.flashFlower()
+	}
+	err := lp.start()
+	if err != nil {
+		panic(err)
+	}
 
 }

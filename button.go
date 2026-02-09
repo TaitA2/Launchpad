@@ -40,6 +40,10 @@ func (b *button) ledOn(color int) error {
 
 // function to turn off led at x,y
 func (b *button) ledOff() error {
+	if b.color == off {
+		return nil
+	}
+	b.color = off
 	args := append(pushArgs, fmt.Sprintf("%s %d%d 00", b.row, b.y, b.x))
 	if b.bType == TOP {
 		args = append(pushArgs, fmt.Sprintf("%s %d%x 00", b.row, b.y, b.x+8))
@@ -81,6 +85,6 @@ func (b *button) execute() error {
 // function to set the macro for a button
 func (b *button) setCMD(command string) error {
 	b.cmd = command
-	fmt.Printf("Set %v command to %s\n", b, b.cmd)
+	fmt.Printf("Set button %d%d command to %s\n", b.x, b.y, b.cmd)
 	return nil
 }

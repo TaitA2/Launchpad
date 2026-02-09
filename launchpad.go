@@ -20,6 +20,7 @@ const (
 	FLASH
 	PAINT
 	MACRO
+	FREEZE
 )
 
 // launchpad struct
@@ -38,21 +39,25 @@ func (lp *launchpad) start() error {
 	lp.allOff()
 	lp.pallette()
 	go lp.listen()
-	prevLayer := -1
+	prevLayer := 0
 	lp.topButtons[lp.layer].ledOn(lp.userColor)
 	lp.gridButtons[0][0].setCMD("kitty -e sl")
-	lp.gridButtons[7][0].setCMD("firefox")
+	lp.gridButtons[7][0].setCMD("firefox tidal.com")
+	lp.gridButtons[7][1].setCMD("firefox airtable.com")
 	for {
-		if prevLayer != lp.layer {
-			fmt.Printf("Switching to layer: %d!\n", lp.layer)
-			prevLayer = lp.layer
-			lp.topButtons[prevLayer].ledOff()
-		}
-		lp.topButtons[lp.layer].ledOn(lp.userColor)
 		// run current layers command
 		if err := lp.layerCMDs[lp.layer](); err != nil {
 			return err
 		}
+		if prevLayer != lp.layer {
+			fmt.Printf("Switching to layer: %d!\n", lp.layer)
+			if lp.layer != FREEZE {
+				lp.gridOff()
+			}
+			// lp.topButtons[prevLayer].ledOff()
+			prevLayer = lp.layer
+		}
+		lp.topButtons[lp.layer].ledOn(lp.userColor)
 	}
 }
 
@@ -70,10 +75,10 @@ func getLaunchpad() *launchpad {
 	// populate button arrays with coords and default values
 	for i := range 8 {
 		lp.gridButtons[i] = make([]*button, 8)
-		lp.topButtons[i] = &button{row: topRow, x: i, y: 6, color: off, pressed: false, bType: TOP}
-		lp.rightButtons[i] = &button{row: gridRow, x: 8, y: i, color: off, pressed: false, bType: RIGHT}
+		lp.topButtons[i] = &button{row: topRow, x: i, y: 6, color: green, pressed: false, bType: TOP}
+		lp.rightButtons[i] = &button{row: gridRow, x: 8, y: i, color: green, pressed: false, bType: RIGHT}
 		for j := range 8 {
-			lp.gridButtons[i][j] = &button{row: gridRow, x: j, y: i, color: off, pressed: false, bType: GRID}
+			lp.gridButtons[i][j] = &button{row: gridRow, x: j, y: i, color: green, pressed: false, bType: GRID}
 		}
 	}
 
@@ -87,18 +92,46 @@ func getLaunchpad() *launchpad {
 func (lp *launchpad) getLayerCMDs() {
 	lp.layerCMDs = make([]func() error, 8)
 	lp.layerCMDs[0] = lp.pushTest
-	lp.layerCMDs[1] = lp.gridOn
-	lp.layerCMDs[2] = lp.flashGrid
+	lp.layerCMDs[1] = lp.explodeOn
+	lp.layerCMDs[2] = lp.breathe
 	lp.layerCMDs[3] = lp.paint
 	lp.layerCMDs[4] = lp.macros
+	lp.layerCMDs[5] = lp.freeze
+}
+
+// function to freeze launchpad LEDs as they are
+func (lp *launchpad) freeze() error {
+	b := lp.getBtn()
+	color := b.color
+	for b != nil && b.pressed {
+		b.ledOn(lp.userColor)
+		oldB := b
+		b = lp.getBtn()
+		if oldB != b {
+			oldB.ledOn(color)
+			color = b.color
+		}
+	}
+	b.ledOn(color)
+
+	return nil
 }
 
 // function to flash all leds
-func (lp *launchpad) flashGrid() error {
-	lp.gridOn()
-	time.Sleep(time.Second)
+func (lp *launchpad) strobe() error {
+	time.Sleep(time.Millisecond * 100)
 	lp.gridOff()
-	time.Sleep(time.Second)
+	time.Sleep(time.Millisecond * 100)
+	return lp.gridOn()
+
+}
+
+// function to ex/implode all leds
+func (lp *launchpad) breathe() error {
+	lp.implodeOff()
+	time.Sleep(time.Millisecond * 500)
+	lp.explodeOn()
+	time.Sleep(time.Millisecond * 500)
 	return nil
 }
 
@@ -139,7 +172,9 @@ func (lp *launchpad) listen() error {
 		if strings.Contains(row, topRow) {
 			b = lp.topButtons[y-8]
 			if pressed && b.x < len(lp.layerCMDs) {
-				lp.gridOff()
+				// if lp.layer != FREEZE {
+				// 	lp.gridOff()
+				// }
 				lp.topButtons[lp.layer].ledOff()
 				lp.layer = b.x
 				lp.topButtons[lp.layer].ledOn(lp.userColor)
@@ -164,19 +199,101 @@ func (lp *launchpad) listen() error {
 func (lp *launchpad) getBtn() *button {
 	for lp.pressedButton == nil {
 	}
-	return lp.pressedButton
+	b := lp.pressedButton
+	lp.pressedButton = nil
+	return b
 }
 
 // turn off all grid buttons
 func (lp *launchpad) gridOff() error {
 	for _, row := range lp.gridButtons {
 		for _, btn := range row {
-			btn.color = off
 			if err := btn.ledOff(); err != nil {
 				return err
 			}
 		}
 	}
+	return nil
+}
+
+// function to turn off all grid LEDs outside in
+func (lp *launchpad) implodeOff() error {
+	for i := range len(lp.gridButtons) / 2 {
+		for j := range len(lp.gridButtons[i]) / 2 {
+
+			btn := lp.gridButtons[j][i]
+			if err := btn.ledOff(); err != nil {
+				return err
+			}
+			btn = lp.gridButtons[j][7-i]
+			if err := btn.ledOff(); err != nil {
+				return err
+			}
+			btn = lp.gridButtons[7-j][i]
+			if err := btn.ledOff(); err != nil {
+				return err
+			}
+			btn = lp.gridButtons[7-j][7-i]
+			if err := btn.ledOff(); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// function to turn off all grid LEDs outside in
+func (lp *launchpad) implodeOn() error {
+	for i := range len(lp.gridButtons) / 2 {
+		for j := range len(lp.gridButtons[i]) / 2 {
+
+			btn := lp.gridButtons[j][i]
+			if err := btn.ledOn(lp.userColor); err != nil {
+				return err
+			}
+			btn = lp.gridButtons[j][7-i]
+			if err := btn.ledOn(lp.userColor); err != nil {
+				return err
+			}
+			btn = lp.gridButtons[7-j][i]
+			if err := btn.ledOn(lp.userColor); err != nil {
+				return err
+			}
+			btn = lp.gridButtons[7-j][7-i]
+			if err := btn.ledOn(lp.userColor); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// function to turn off all grid LEDs outside in
+func (lp *launchpad) explodeOn() error {
+	for i := range len(lp.gridButtons) / 2 {
+		for j := range len(lp.gridButtons[i]) / 2 {
+
+			btn := lp.gridButtons[3-j][3-i]
+			if err := btn.ledOn(lp.userColor); err != nil {
+				return err
+			}
+			btn = lp.gridButtons[3-j][4+i]
+			if err := btn.ledOn(lp.userColor); err != nil {
+				return err
+			}
+			btn = lp.gridButtons[4+j][3-i]
+			if err := btn.ledOn(lp.userColor); err != nil {
+				return err
+			}
+			btn = lp.gridButtons[4+j][4+i]
+			if err := btn.ledOn(lp.userColor); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -213,6 +330,13 @@ func (lp *launchpad) rightOff() error {
 }
 
 // function to turn all leds on to specified color
+// func (lp *launchpad) allOn() error {
+// 	args := append(pushArgs, fmt.Sprintf("B0 00 %s", lp.userColor))
+// 	cmd := exec.Command(lpCmd, args...)
+// 	return cmd.Run()
+// }
+
+// function to turn all leds on to specified color
 func (lp *launchpad) allOn() error {
 
 	color := lp.userColor
@@ -234,6 +358,12 @@ func (lp *launchpad) allOn() error {
 }
 
 // function to turn all leds on to specified color
+// func (lp *launchpad) allOff() error {
+// 	args := append(pushArgs, "B0 00 00")
+// 	cmd := exec.Command(lpCmd, args...)
+// 	return cmd.Run()
+// }
+
 func (lp *launchpad) allOff() error {
 	// turn off all top buttons
 	for i := range lp.topButtons {
@@ -246,13 +376,7 @@ func (lp *launchpad) allOff() error {
 	}
 
 	// turn off all grid buttons
-	for i, row := range lp.gridButtons {
-		for j := range row {
-			if err := lp.gridButtons[i][j].ledOff(); err != nil {
-				return err
-			}
-		}
-	}
+	lp.gridOff()
 	return nil
 }
 
@@ -342,5 +466,48 @@ func (lp *launchpad) macros() error {
 	} else {
 		b.ledOn(lp.userColor)
 	}
+	return nil
+}
+
+func (lp *launchpad) drawFlower() error {
+	lp.allOff()
+	// top, bottom and middle of flower
+	for k := range 2 {
+		// lime core
+		lp.gridButtons[2][3+k].ledOn(lime)
+		// amber sides
+		lp.gridButtons[2][2+(3*k)].ledOn(amber)
+
+		// green leaves
+		lp.gridButtons[5][k].ledOn(green)
+		lp.gridButtons[5][k+6].ledOn(green)
+		lp.gridButtons[6][2+(k*3)].ledOn(green)
+
+		// top and bottom
+		for i := range 4 {
+			lp.gridButtons[k*4][i+2].ledOn(red)
+			lp.gridButtons[k*4+(1+(k*-2))][i+2].ledOn(amber)
+
+		}
+	}
+
+	for k := range 3 {
+		// red walls
+		lp.gridButtons[k+1][1].ledOn(red)
+		lp.gridButtons[k+1][6].ledOn(red)
+
+		// green stem
+		lp.gridButtons[k+5][3].ledOn(green)
+		lp.gridButtons[k+5][4].ledOn(green)
+	}
+	return nil
+}
+
+func (lp *launchpad) flashFlower() error {
+	lp.drawFlower()
+	time.Sleep(time.Millisecond * 200)
+	lp.allOff()
+	time.Sleep(time.Millisecond * 200)
+
 	return nil
 }
