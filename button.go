@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 // button struct
@@ -52,13 +53,35 @@ func (b *button) ledOff() error {
 	return cmd.Run()
 }
 
+// function to flash a buttons LED n times
+func (b *button) flash(color int, n int) error {
+	// repeat n times
+	for range n {
+		// on
+		if err := b.ledOn(color); err != nil {
+			return fmt.Errorf("Error flashing button: %v", err)
+		}
+		time.Sleep(time.Millisecond * 100)
+		// off
+		if err := b.ledOff(); err != nil {
+			return fmt.Errorf("Error flashing button: %v", err)
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
+	return nil
+}
+
 // function to execute buttons macro command
 func (b *button) execute() error {
+
+	// return if button has no command
 	if b.cmd == "" {
 		return nil
 	}
+
 	fmt.Println("EXECUTING COMMAND", b.cmd)
-	b.ledOn(green)
+
+	go b.flash(lime, 10)
 
 	args := strings.Split(b.cmd, " ")
 	// error if no command
@@ -78,7 +101,7 @@ func (b *button) execute() error {
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("Error executing button macro: %v", err)
 	}
-	b.ledOff()
+	b.flash(green, 3)
 	return nil
 }
 
