@@ -13,13 +13,36 @@ var lpCmd string = "amidi"
 var getArgs = []string{"-d", "-p", "hw:0,0,0"}
 var pushArgs = []string{"-p", "hw:0,0,0", "-S"}
 
-const green = "30"
-const red = "3"
-const amber = "13"
-const lime = "39"
+// top row vs grid row codes
+const topRow = "B0"
+const gridRow = "90"
+
+// LED color codes
+const off = 0
+const green = 30
+const red = 3
+const amber = 13
+const lime = 39
+
+// button struct
+type button struct {
+	row     string // topRow or gridRow
+	x       int    // collumn index
+	y       int    // row index
+	color   int    // current button color
+	pressed bool   // currently held down
+}
+
+// launchpad struct
+type launchpad struct {
+	topButtons  []*button   // map of x index to topRow buttons
+	gridButtons [][]*button // 2D array of buttons - first index for row, second index for collumn
+	layer       int         // current active 'layer' (0-7) tied to top row
+}
 
 func main() {
 	all_off()
+	var lp *launchpad
 	args := os.Args[1:]
 	if len(args) < 1 {
 		fmt.Println("Too few arguments.")
@@ -27,11 +50,13 @@ func main() {
 	}
 
 	switch args[0] {
+	case "test":
+		push_test()
 	case "pallette":
 		pallette()
 	case "flash":
 		if len(args) == 1 {
-			flash_all(green)
+			lp.flash_all(green)
 		} else if len(args) == 2 {
 			flash_all(args[1])
 		}
@@ -43,21 +68,21 @@ func main() {
 		}
 	case "on":
 		if len(args) == 2 {
-			led_on(args[1], args[2])
+			lp.grid_on(args[1], args[2])
 		} else {
-			led_on(args[1], green)
+			lp.grid_on(args[1], green)
 		}
 	case "off":
 		if len(args) == 1 {
-			all_off()
+			lp.all_off()
 		} else {
 			led_off(args[1])
 		}
 	case "listen":
 		listen()
 
-	case "draw":
-		draw()
+	case "paint":
+		paint()
 
 	default:
 		fmt.Println("INVALID USAGE")
@@ -66,11 +91,11 @@ func main() {
 }
 
 // function to flash all leds
-func flash_all(color string) {
+func (lp *launchpad) flash_all(color int) {
 	for {
-		all_on(color)
+		lp.all_on(color)
 		time.Sleep(time.Second)
-		all_off()
+		lp.all_off()
 		time.Sleep(time.Second)
 	}
 }
@@ -108,65 +133,83 @@ func get_btn() (string, error) {
 }
 
 // function to turn led at x,y on to specified color
-func led_on(pos string, color string) {
-	args := append(pushArgs, fmt.Sprintf("90 %s %s", pos, color))
+func (b *button) led_on(color int) {
+	args := append(pushArgs, fmt.Sprintf("%s %d%d %s", b.row, b.x, b.y, color))
 	cmd := exec.Command(lpCmd, args...)
 	cmd.Run()
 
 }
 
 // function to turn off led at x,y
-func led_off(pos string) {
-	args := append(pushArgs, fmt.Sprintf("90 %s 00", pos))
-	cmd := exec.Command(lpCmd, args...)
-	cmd.Run()
-}
-
-// function to turn of led at x,y on the top row
-func top_on(pos string, color string) {
-	args := append(pushArgs, fmt.Sprintf("B0 %s %s", pos, color))
-	cmd := exec.Command(lpCmd, args...)
-	cmd.Run()
-}
-
-// function to turn of led at x,y on the top row
-func top_off(pos string) {
-	args := append(pushArgs, fmt.Sprintf("B0 %s 00", pos))
+func (b *button) led_off() {
+	args := append(pushArgs, fmt.Sprintf("%s %d%d 00", b.row, b.x, b.y))
 	cmd := exec.Command(lpCmd, args...)
 	cmd.Run()
 }
 
 // function to turn all leds on to specified color
-func all_on(color string) {
-	for i := range 8 {
-		top_on(fmt.Sprintf("6%x", 8+i), color)
-		for j := range 9 {
-			pos := fmt.Sprintf("%d%d", i, j)
-			led_on(pos, color)
+func (lp *launchpad) all_on(color int) {
+
+	// turn on all top buttons
+
+	for _, btn := range lp.topButtons {
+		btn.led_on(color)
+	}
+
+	// turn on all grid buttons
+	for _, row := range lp.gridButtons {
+		for _, btn := range row {
+			btn.led_on(color)
 		}
 	}
 }
 
 // function to turn all leds on to specified color
-func all_off() {
-	for i := range 8 {
-		top_off(fmt.Sprintf("6%x", 8+i))
-		for j := range 9 {
-			pos := fmt.Sprintf("%d%d", i, j)
-			led_off(pos)
+func (lp *launchpad) all_off() {
+	// turn off all top buttons
+	for _, btn := range lp.topButtons {
+		btn.led_off()
+	}
+
+	// turn off all grid buttons
+	for _, row := range lp.gridButtons {
+		for _, btn := range row {
+			btn.led_off()
 		}
 	}
 }
 
 // function to turn on any pushed leds
-func draw() error {
+func paint() error {
+	paint_setup()
 	for {
 		output, err := get_btn()
 		if err != nil {
 			return fmt.Errorf("Error listening: %v", err)
 		}
 		pos := strings.Split(output, " ")[1]
-		led_on(pos, "30")
+		grid_on(pos, green)
+	}
+}
+
+func paint_setup() {
+	all_off()
+
+	// right collumn color pallete
+	grid_on("90 08", green)
+}
+
+// function to enable LED of any button while its pushed
+func push_test() error {
+	for {
+		output, err := get_btn()
+		if err != nil {
+			return fmt.Errorf("Error listening: %v", err)
+		}
+		outsplit := strings.Split(output, " ")
+		color := outsplit[2]
+		pos := strings.Join(outsplit[:2], " ")
+		grid_on(pos, color)
 	}
 }
 
@@ -179,7 +222,7 @@ func pallette() {
 			for j := range 4 {
 				pos := fmt.Sprintf("%d%d", i, j)
 				color := strconv.Itoa(k)
-				led_on(pos, color)
+				grid_on(pos, color)
 				k++
 			}
 		}
@@ -188,7 +231,7 @@ func pallette() {
 			for j := range 4 {
 				pos := fmt.Sprintf("%d%d", i, j+4)
 				color := strconv.Itoa(k)
-				led_on(pos, color)
+				grid_on(pos, color)
 				k++
 			}
 		}
