@@ -33,8 +33,16 @@ type button struct {
 	x       int    // collumn index
 	y       int    // row index
 	color   int    // current button color
+	bType   int    // 0: top, 1: right, 2: grid
 	pressed bool   // currently held down
 }
+
+// button type enums
+const (
+	TOP = iota
+	RIGHT
+	GRID
+)
 
 // launchpad struct
 type launchpad struct {
@@ -101,12 +109,12 @@ func get_launchpad() *launchpad {
 	lp.gridButtons = make([][]*button, 8)
 	for i := range 8 {
 		lp.gridButtons[i] = make([]*button, 8)
-		topBtn := button{row: topRow, x: i, y: i, color: off, pressed: false}
+		topBtn := button{row: topRow, x: i, y: i, color: off, pressed: false, bType: 0}
 		lp.topButtons[i] = &topBtn
-		rightBtn := button{row: gridRow, x: 8, y: i, color: off, pressed: false}
+		rightBtn := button{row: gridRow, x: 8, y: i, color: off, pressed: false, bType: 1}
 		lp.rightButtons[i] = &rightBtn
 		for j := range 8 {
-			gridBtn := button{row: gridRow, x: j, y: i, color: off, pressed: false}
+			gridBtn := button{row: gridRow, x: j, y: i, color: off, pressed: false, bType: 2}
 			lp.gridButtons[i][j] = &gridBtn
 		}
 	}
@@ -175,8 +183,10 @@ func (lp *launchpad) get_btn() (*button, error) {
 
 // function to turn led at x,y on to specified color
 func (b *button) led_on(color int) {
-	b.color = color
-	args := append(pushArgs, fmt.Sprintf("%s %d%d %d", b.row, b.x, b.y, color))
+	if color != -1 {
+		b.color = color
+	}
+	args := append(pushArgs, fmt.Sprintf("%s %d%d %d", b.row, b.y, b.x, color))
 	cmd := exec.Command(lpCmd, args...)
 	cmd.Run()
 
@@ -184,20 +194,41 @@ func (b *button) led_on(color int) {
 
 // function to turn off led at x,y
 func (b *button) led_off() {
-	args := append(pushArgs, fmt.Sprintf("%s %d%d 00", b.row, b.x, b.y))
+	args := append(pushArgs, fmt.Sprintf("%s %d%d 00", b.row, b.y, b.x))
 	cmd := exec.Command(lpCmd, args...)
 	cmd.Run()
 }
 
+// turn on all grid buttons
 func (lp *launchpad) grid_on(color int) {
-
-	// turn on all grid buttons
 	for _, row := range lp.gridButtons {
 		for _, btn := range row {
 			btn.led_on(color)
 		}
 	}
+}
 
+// turn off all grid buttons
+func (lp *launchpad) grid_off(color int) {
+	for _, row := range lp.gridButtons {
+		for _, btn := range row {
+			btn.led_off()
+		}
+	}
+}
+
+// turn on all right collumn buttons
+func (lp *launchpad) right_on(color int) {
+	for _, b := range lp.rightButtons {
+		b.led_on(b.color)
+	}
+}
+
+// turn off all right collumn buttons
+func (lp *launchpad) right_off() {
+	for _, b := range lp.rightButtons {
+		b.led_off()
+	}
 }
 
 // function to turn all leds on to specified color
@@ -208,6 +239,8 @@ func (lp *launchpad) all_on(color int) {
 	for _, btn := range lp.topButtons {
 		btn.led_on(color)
 	}
+
+	lp.right_on(color)
 
 	lp.grid_on(color)
 }
@@ -230,17 +263,33 @@ func (lp *launchpad) all_off() {
 // function to turn on any pushed leds
 func (lp *launchpad) paint() error {
 	lp.paint_setup()
+	color := green
 	for {
 		b, err := lp.get_btn()
 		if err != nil {
 			return fmt.Errorf("Error listening: %v", err)
 		}
-		b.led_on(green)
+		switch b.bType {
+		case TOP:
+			// change to that layer
+			continue
+		case RIGHT:
+			color = b.color
+		case GRID:
+			b.led_on(color)
+		default:
+			return fmt.Errorf("Invalid bType: %d", b.bType)
+		}
 	}
 }
 
 func (lp *launchpad) paint_setup() {
 	lp.all_off()
+	lp.rightButtons[0].led_on(off)
+	lp.rightButtons[1].led_on(green)
+	lp.rightButtons[2].led_on(red)
+	lp.rightButtons[3].led_on(amber)
+	lp.rightButtons[4].led_on(lime)
 
 }
 
