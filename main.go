@@ -101,12 +101,12 @@ func get_launchpad() *launchpad {
 	lp.gridButtons = make([][]*button, 8)
 	for i := range 8 {
 		lp.gridButtons[i] = make([]*button, 8)
-		topBtn := button{row: topRow, x: 6, y: 8 + i, color: off, pressed: false}
+		topBtn := button{row: topRow, x: i, y: i, color: off, pressed: false}
 		lp.topButtons[i] = &topBtn
-		rightBtn := button{row: gridRow, x: i, y: 8, color: off, pressed: false}
+		rightBtn := button{row: gridRow, x: 8, y: i, color: off, pressed: false}
 		lp.rightButtons[i] = &rightBtn
 		for j := range 8 {
-			gridBtn := button{row: gridRow, x: i, y: j, color: off, pressed: false}
+			gridBtn := button{row: gridRow, x: j, y: i, color: off, pressed: false}
 			lp.gridButtons[i][j] = &gridBtn
 		}
 	}
@@ -130,7 +130,7 @@ func (lp *launchpad) listen() error {
 		if err != nil {
 			return fmt.Errorf("Error listening: %v", err)
 		}
-		fmt.Printf("%v", b)
+		fmt.Printf("%v\n", b)
 	}
 }
 
@@ -160,8 +160,11 @@ func (lp *launchpad) get_btn() (*button, error) {
 	y, _ := strconv.ParseInt(parts[1][1:], 16, 64)
 	pressed := parts[2] != "00"
 
-	if strings.Compare(row, topRow) == 0 {
+	if strings.Contains(row, topRow) {
 		b = lp.topButtons[y-8]
+	} else if y == 8 {
+		b = lp.rightButtons[x]
+
 	} else {
 		b = lp.gridButtons[x][y]
 	}
