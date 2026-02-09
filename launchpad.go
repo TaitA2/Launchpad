@@ -46,7 +46,9 @@ func (lp *launchpad) start() error {
 		if prevLayer != lp.layer {
 			fmt.Printf("Switching to layer: %d!\n", lp.layer)
 			prevLayer = lp.layer
+			lp.topButtons[prevLayer].ledOff()
 		}
+		lp.topButtons[lp.layer].ledOn(lp.userColor)
 		// run current layers command
 		if err := lp.layerCMDs[lp.layer](); err != nil {
 			return err
@@ -275,7 +277,7 @@ func (lp *launchpad) paint() error {
 func (lp *launchpad) pallette() {
 	// turn off all LEDs
 	lp.gridOff()
-	lp.userColor = green
+	lp.userColor = defaultColor
 
 	// set right buttons as color pallette
 	lp.rightButtons[0].ledOn(off)

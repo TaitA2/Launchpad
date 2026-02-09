@@ -11,6 +11,8 @@ const red = 3
 const amber = 13
 const lime = 39
 
+const defaultColor = amber
+
 // map of string color names to color codes
 var colors = map[string]int{"green": green, "red": red, "amber": amber, "lime": lime}
 
