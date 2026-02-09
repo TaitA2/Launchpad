@@ -19,6 +19,7 @@ const (
 	ALL
 	FLASH
 	PAINT
+	MACRO
 )
 
 // launchpad struct
@@ -32,45 +33,6 @@ type launchpad struct {
 	userColor     int            // current color selected by user
 }
 
-// function to return launchpad struct
-func get_launchpad() *launchpad {
-
-	// initialise launchpad
-	var lp launchpad
-
-	// initialise button arrays
-	lp.topButtons = make([]*button, 8)
-	lp.rightButtons = make([]*button, 8)
-	lp.gridButtons = make([][]*button, 8)
-
-	// populate button arrays with coords and default values
-	for i := range 8 {
-		lp.gridButtons[i] = make([]*button, 8)
-		topBtn := button{row: topRow, x: i, y: 6, color: off, pressed: false, bType: TOP}
-		lp.topButtons[i] = &topBtn
-		rightBtn := button{row: gridRow, x: 8, y: i, color: off, pressed: false, bType: RIGHT}
-		lp.rightButtons[i] = &rightBtn
-		for j := range 8 {
-			gridBtn := button{row: gridRow, x: j, y: i, color: off, pressed: false, bType: GRID}
-			lp.gridButtons[i][j] = &gridBtn
-		}
-	}
-
-	// get layer functions
-	lp.getLayerCMDs()
-
-	// return a pointer to the launchpad
-	return &lp
-}
-
-func (lp *launchpad) getLayerCMDs() {
-	lp.layerCMDs = make([]func() error, 8)
-	lp.layerCMDs[0] = lp.push_test
-	lp.layerCMDs[1] = lp.grid_on
-	lp.layerCMDs[2] = lp.flash_grid
-	lp.layerCMDs[3] = lp.paint
-}
-
 func (lp *launchpad) start() error {
 	fmt.Println("Starting launchpad!")
 	lp.allOff()
@@ -78,6 +40,8 @@ func (lp *launchpad) start() error {
 	go lp.listen()
 	prevLayer := -1
 	lp.topButtons[lp.layer].ledOn(lp.userColor)
+	lp.gridButtons[0][0].setCMD("kitty -e sl")
+	lp.gridButtons[7][0].setCMD("firefox")
 	for {
 		if prevLayer != lp.layer {
 			fmt.Printf("Switching to layer: %d!\n", lp.layer)
@@ -90,11 +54,48 @@ func (lp *launchpad) start() error {
 	}
 }
 
+// function to return launchpad struct
+func getLaunchpad() *launchpad {
+
+	// initialise launchpad
+	var lp launchpad
+
+	// initialise button arrays
+	lp.topButtons = make([]*button, 8)
+	lp.rightButtons = make([]*button, 8)
+	lp.gridButtons = make([][]*button, 8)
+
+	// populate button arrays with coords and default values
+	for i := range 8 {
+		lp.gridButtons[i] = make([]*button, 8)
+		lp.topButtons[i] = &button{row: topRow, x: i, y: 6, color: off, pressed: false, bType: TOP}
+		lp.rightButtons[i] = &button{row: gridRow, x: 8, y: i, color: off, pressed: false, bType: RIGHT}
+		for j := range 8 {
+			lp.gridButtons[i][j] = &button{row: gridRow, x: j, y: i, color: off, pressed: false, bType: GRID}
+		}
+	}
+
+	// get layer functions
+	lp.getLayerCMDs()
+
+	// return a pointer to the launchpad
+	return &lp
+}
+
+func (lp *launchpad) getLayerCMDs() {
+	lp.layerCMDs = make([]func() error, 8)
+	lp.layerCMDs[0] = lp.pushTest
+	lp.layerCMDs[1] = lp.gridOn
+	lp.layerCMDs[2] = lp.flashGrid
+	lp.layerCMDs[3] = lp.paint
+	lp.layerCMDs[4] = lp.macros
+}
+
 // function to flash all leds
-func (lp *launchpad) flash_grid() error {
-	lp.grid_on()
+func (lp *launchpad) flashGrid() error {
+	lp.gridOn()
 	time.Sleep(time.Second)
-	lp.grid_off()
+	lp.gridOff()
 	time.Sleep(time.Second)
 	return nil
 }
@@ -136,7 +137,7 @@ func (lp *launchpad) listen() error {
 		if strings.Contains(row, topRow) {
 			b = lp.topButtons[y-8]
 			if pressed && b.x < len(lp.layerCMDs) {
-				lp.grid_off()
+				lp.gridOff()
 				lp.topButtons[lp.layer].ledOff()
 				lp.layer = b.x
 				lp.topButtons[lp.layer].ledOn(lp.userColor)
@@ -165,7 +166,7 @@ func (lp *launchpad) getBtn() *button {
 }
 
 // turn off all grid buttons
-func (lp *launchpad) grid_off() error {
+func (lp *launchpad) gridOff() error {
 	for _, row := range lp.gridButtons {
 		for _, btn := range row {
 			btn.color = off
@@ -178,7 +179,7 @@ func (lp *launchpad) grid_off() error {
 }
 
 // turn on all grid buttons
-func (lp *launchpad) grid_on() error {
+func (lp *launchpad) gridOn() error {
 	for _, row := range lp.gridButtons {
 		for _, btn := range row {
 			if err := btn.ledOn(lp.userColor); err != nil {
@@ -190,7 +191,7 @@ func (lp *launchpad) grid_on() error {
 }
 
 // turn on all right collumn buttons
-func (lp *launchpad) right_on() error {
+func (lp *launchpad) rightOn() error {
 	for _, b := range lp.rightButtons {
 		if err := b.ledOn(b.color); err != nil {
 			return err
@@ -200,7 +201,7 @@ func (lp *launchpad) right_on() error {
 }
 
 // turn off all right collumn buttons
-func (lp *launchpad) right_off() error {
+func (lp *launchpad) rightOff() error {
 	for _, b := range lp.rightButtons {
 		if err := b.ledOff(); err != nil {
 			return err
@@ -210,7 +211,7 @@ func (lp *launchpad) right_off() error {
 }
 
 // function to turn all leds on to specified color
-func (lp *launchpad) all_on() error {
+func (lp *launchpad) allOn() error {
 
 	color := lp.userColor
 	// turn on all top buttons
@@ -220,11 +221,11 @@ func (lp *launchpad) all_on() error {
 		}
 	}
 
-	if err := lp.right_on(); err != nil {
+	if err := lp.rightOn(); err != nil {
 		return err
 	}
 
-	if err := lp.grid_on(); err != nil {
+	if err := lp.gridOn(); err != nil {
 		return err
 	}
 	return nil
@@ -273,7 +274,7 @@ func (lp *launchpad) paint() error {
 // function to setup the paint environment
 func (lp *launchpad) pallette() {
 	// turn off all LEDs
-	lp.grid_off()
+	lp.gridOff()
 	lp.userColor = green
 
 	// set right buttons as color pallette
@@ -286,7 +287,7 @@ func (lp *launchpad) pallette() {
 }
 
 // function to enable LED of any button while its pushed
-func (lp *launchpad) push_test() error {
+func (lp *launchpad) pushTest() error {
 
 	b := lp.getBtn()
 
@@ -322,4 +323,22 @@ func (lp *launchpad) colorDebug() {
 		}
 		time.Sleep(time.Second * 5)
 	}
+}
+
+// function to execute linux cmd of button pushed
+func (lp *launchpad) macros() error {
+	// get current button
+	b := lp.getBtn()
+	if b.pressed {
+		if b.cmd == "" {
+			b.ledOn(lp.userColor)
+		} else {
+			return b.execute()
+		}
+	} else if b.bType == GRID {
+		b.ledOff()
+	} else {
+		b.ledOn(lp.userColor)
+	}
+	return nil
 }

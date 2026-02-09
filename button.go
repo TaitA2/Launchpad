@@ -3,17 +3,18 @@ package main
 import (
 	"fmt"
 	"os/exec"
+	"strings"
 )
 
 // button struct
 type button struct {
-	row     string   // topRow or gridRow
-	x       int      // collumn index
-	y       int      // row index
-	color   int      // current button color
-	bType   int      // 0: top, 1: right, 2: grid
-	pressed bool     // currently held down
-	cmd     exec.Cmd // linux command executed when button gets pressed
+	row     string // topRow or gridRow
+	x       int    // collumn index
+	y       int    // row index
+	color   int    // current button color
+	bType   int    // 0: top, 1: right, 2: grid
+	pressed bool   // currently held down
+	cmd     string // linux command executed when button gets pressed
 }
 
 // button types enum
@@ -45,4 +46,41 @@ func (b *button) ledOff() error {
 	}
 	cmd := exec.Command(lpCmd, args...)
 	return cmd.Run()
+}
+
+// function to execute buttons macro command
+func (b *button) execute() error {
+	if b.cmd == "" {
+		return nil
+	}
+	fmt.Println("EXECUTING COMMAND", b.cmd)
+	b.ledOn(green)
+
+	args := strings.Split(b.cmd, " ")
+	// error if no command
+	if len(args) == 0 {
+		return fmt.Errorf("No command found")
+	}
+
+	// set button command
+	var cmd *exec.Cmd
+	if len(args) == 1 {
+		cmd = exec.Command(args[0])
+	} else {
+		cmd = exec.Command(args[0], args[1:]...)
+	}
+
+	// run command
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("Error executing button macro: %v", err)
+	}
+	b.ledOff()
+	return nil
+}
+
+// function to set the macro for a button
+func (b *button) setCMD(command string) error {
+	b.cmd = command
+	fmt.Printf("Set %v command to %s\n", b, b.cmd)
+	return nil
 }

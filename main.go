@@ -14,11 +14,9 @@ const lime = 39
 // map of string color names to color codes
 var colors = map[string]int{"green": green, "red": red, "amber": amber, "lime": lime}
 
-// var layerCMDs  []func() = {test, all_on, flash, paint}
-
 func main() {
 	// get the launchpad struct
-	lp := get_launchpad()
+	lp := getLaunchpad()
 
 	// start launchpad
 	lp.start()
