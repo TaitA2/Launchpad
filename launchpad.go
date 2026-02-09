@@ -104,7 +104,16 @@ func (lp *launchpad) freeze() error {
 	b := lp.getBtn()
 	color := b.color
 	for b != nil && b.pressed {
-		b.ledOn(lp.userColor)
+		if b.color == lp.userColor {
+			if b.color == lime {
+				b.ledOn(amber)
+			} else {
+				b.ledOn(lime)
+			}
+
+		} else {
+			b.ledOn(lp.userColor)
+		}
 		oldB := b
 		b = lp.getBtn()
 		if oldB != b {
