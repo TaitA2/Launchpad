@@ -339,19 +339,18 @@ func (lp *launchpad) rightOff() error {
 }
 
 // function to turn all leds on to specified color
-// func (lp *launchpad) allOn() error {
-// 	args := append(pushArgs, fmt.Sprintf("B0 00 %s", lp.userColor))
-// 	cmd := exec.Command(lpCmd, args...)
-// 	return cmd.Run()
-// }
+func (lp *launchpad) forceAllOn() error {
+	args := append(pushArgs, fmt.Sprintf("B0 00 %d", lp.userColor))
+	cmd := exec.Command(lpCmd, args...)
+	return cmd.Run()
+}
 
 // function to turn all leds on to specified color
 func (lp *launchpad) allOn() error {
 
-	color := lp.userColor
 	// turn on all top buttons
 	for _, btn := range lp.topButtons {
-		if err := btn.ledOn(color); err != nil {
+		if err := btn.ledOn(lp.userColor); err != nil {
 			return err
 		}
 	}
@@ -367,11 +366,11 @@ func (lp *launchpad) allOn() error {
 }
 
 // function to turn all leds on to specified color
-// func (lp *launchpad) allOff() error {
-// 	args := append(pushArgs, "B0 00 00")
-// 	cmd := exec.Command(lpCmd, args...)
-// 	return cmd.Run()
-// }
+func (lp *launchpad) forceAllOff() error {
+	args := append(pushArgs, "B0 00 00")
+	cmd := exec.Command(lpCmd, args...)
+	return cmd.Run()
+}
 
 func (lp *launchpad) allOff() error {
 	// turn off all top buttons
@@ -515,7 +514,7 @@ func (lp *launchpad) drawFlower() error {
 func (lp *launchpad) flashFlower() error {
 	lp.drawFlower()
 	time.Sleep(time.Millisecond * 200)
-	lp.allOff()
+	lp.forceAllOff()
 	time.Sleep(time.Millisecond * 200)
 
 	return nil
