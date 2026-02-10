@@ -15,12 +15,12 @@ const gridRow = "90"
 
 // layer command enum
 const (
-	TEST = iota
-	ALL
-	FLASH
+	FREEZE = iota
 	PAINT
+	BREATHE
+	ALL
 	MACRO
-	FREEZE
+	RECORD
 )
 
 // launchpad struct
@@ -91,12 +91,11 @@ func getLaunchpad() *launchpad {
 
 func (lp *launchpad) getLayerCMDs() {
 	lp.layerCMDs = make([]func() error, 8)
-	lp.layerCMDs[0] = lp.pushTest
-	lp.layerCMDs[1] = lp.explodeOn
-	lp.layerCMDs[2] = lp.breathe
-	lp.layerCMDs[3] = lp.paint
-	lp.layerCMDs[4] = lp.macros
-	lp.layerCMDs[5] = lp.freeze
+	lp.layerCMDs[FREEZE] = lp.freeze
+	lp.layerCMDs[PAINT] = lp.paint
+	lp.layerCMDs[BREATHE] = lp.breathe
+	lp.layerCMDs[ALL] = lp.explodeOn
+	lp.layerCMDs[MACRO] = lp.macro
 }
 
 // function to freeze launchpad LEDs as they are
@@ -460,7 +459,7 @@ func (lp *launchpad) colorDebug() {
 }
 
 // function to execute linux cmd of button pushed
-func (lp *launchpad) macros() error {
+func (lp *launchpad) macro() error {
 	// get current button
 	b := lp.getBtn()
 	if b.pressed {
