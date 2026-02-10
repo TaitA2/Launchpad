@@ -51,7 +51,7 @@ func (lp *launchpad) start() error {
 		}
 		if prevLayer != lp.layer {
 			fmt.Printf("Switching to layer: %d!\n", lp.layer)
-			if lp.layer != FREEZE {
+			if !((lp.layer == FREEZE) || (lp.layer == PAINT && prevLayer == FREEZE)) {
 				lp.gridOff()
 			}
 			// lp.topButtons[prevLayer].ledOff()
@@ -180,9 +180,10 @@ func (lp *launchpad) listen() error {
 		if strings.Contains(row, topRow) {
 			b = lp.topButtons[y-8]
 			if pressed && b.x < len(lp.layerCMDs) {
-				// if lp.layer != FREEZE {
-				// 	lp.gridOff()
-				// }
+				// refresh grid when same layer pressed
+				if b.x == lp.layer {
+					lp.gridOff()
+				}
 				lp.topButtons[lp.layer].ledOff()
 				lp.layer = b.x
 				lp.topButtons[lp.layer].ledOn(lp.userColor)
