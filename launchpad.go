@@ -27,13 +27,13 @@ const (
 
 // launchpad struct
 type launchpad struct {
-	topButtons    []*button      // array x index to topRow buttons
-	rightButtons  []*button      // array y index of right collumn buttons
-	gridButtons   [][]*button    // 2D array of buttons - first index for row, second index for collumn
-	pressedButton *button        // array of pressed buttons
-	layerCMDs     []func() error // array of layer functions
-	layer         int            // current active 'layer' (0-7) tied to top row
-	userColor     int            // current color selected by user
+	topButtons   []*button      // array x index to topRow buttons
+	rightButtons []*button      // array y index of right collumn buttons
+	gridButtons  [][]*button    // 2D array of buttons - first index for row, second index for collumn
+	buttonChan   chan *button   // channel for current button
+	layerCMDs    []func() error // array of layer functions
+	layer        int            // current active 'layer' (0-7) tied to top row
+	userColor    int            // current color selected by user
 }
 
 // function to start the launchpad
@@ -109,6 +109,9 @@ func getLaunchpad() (*launchpad, error) {
 	if err := getMidi(); err != nil {
 		return nil, err
 	}
+
+	// initialise button channel
+	lp.buttonChan = make(chan *button, 10)
 
 	// initialise button arrays
 	fmt.Println("Creating buttons...")
@@ -371,17 +374,13 @@ func (lp *launchpad) listen() error {
 			b = lp.gridButtons[x][y]
 		}
 		b.pressed = pressed
-		lp.pressedButton = b
+		lp.buttonChan <- b
 	}
 }
 
 // function to get one line of launchpad input
 func (lp *launchpad) getBtn() *button {
-	for lp.pressedButton == nil {
-	}
-	b := lp.pressedButton
-	lp.pressedButton = nil
-	return b
+	return <-lp.buttonChan
 }
 
 // turn off all grid buttons
