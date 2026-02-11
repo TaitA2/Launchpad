@@ -65,10 +65,9 @@ func (lp *launchpad) start() error {
 			if lp.layer != FREEZE && lp.layer != PAINT {
 				lp.gridOff()
 			}
-			// enable macro colors if new layer is macro
-			// if lp.layer == MACRO || lp.layer == RECORD {
-			// 	lp.macroLights()
-			// }
+			if lp.layer == RECORD {
+				go lp.macroFlash()
+			}
 			// update previous layer var
 			prevLayer = lp.layer
 		}
@@ -88,6 +87,16 @@ func (lp *launchpad) macroLights() error {
 	}
 
 	return nil
+}
+
+// function to flash grid buttons with macro command
+func (lp *launchpad) macroFlash() {
+	for lp.layer == RECORD {
+		lp.gridOff()
+		time.Sleep(time.Millisecond * 500)
+		lp.macroLights()
+		time.Sleep(time.Millisecond * 500)
+	}
 }
 
 // function to return launchpad struct
@@ -175,29 +184,28 @@ func (lp *launchpad) getMacros() error {
 
 // function to save macros to a file
 func (lp *launchpad) saveMacros() error {
-	file, err := os.Open(macroFile)
+	file, err := os.Create(macroFile)
 	if err != nil {
 		return fmt.Errorf("Error opening macro file: %v", err)
 	}
 	defer file.Close()
-	writer := bufio.NewWriter(file)
-	if _, err := writer.WriteString("row,column,cmd\n"); err != nil {
-		return fmt.Errorf("Error writing to macro file: %v", err)
+	if _, err := fmt.Fprint(file, "row,column,cmd\n"); err != nil {
+		return fmt.Errorf("Error writing macro file header: %v", err)
 	}
 
 	// iterate over all grid buttons
 	for i, row := range lp.gridButtons {
 		for j, b := range row {
 			if b.cmd != "" {
-				line := fmt.Sprintf("%d,%d,%s\n", i, j, b.cmd)
-				if _, err := writer.WriteString(line); err != nil {
+				if _, err := fmt.Fprintf(file, "%d,%d,%s\n", i, j, b.cmd); err != nil {
 					return fmt.Errorf("Error writing to macro file: %v", err)
 				}
 			}
 		}
 	}
 
-	fmt.Println("Saved macros to file!")
+	file.Close()
+	fmt.Printf("Saved macros to file: %s!\n", file.Name())
 	// exit without error
 	return nil
 }
@@ -259,6 +267,9 @@ func (lp *launchpad) setLayerCMDs() {
 // function to freeze launchpad LEDs as they are
 func (lp *launchpad) freeze() error {
 	b := lp.getBtn()
+	if b.bType != GRID {
+		return nil
+	}
 	color := b.color
 	for b != nil && b.pressed {
 		if b.color == lp.userColor {
@@ -661,14 +672,6 @@ func (lp *launchpad) macro() error {
 
 // layer to set the macro of button pushed
 func (lp *launchpad) recordMacro() error {
-	go func() {
-		for lp.layer == RECORD {
-			lp.gridOff()
-			time.Sleep(time.Millisecond * 500)
-			lp.macroLights()
-			time.Sleep(time.Millisecond * 500)
-		}
-	}()
 	// get current button
 	b := lp.getBtn()
 	if b.bType != GRID || !b.pressed {
@@ -690,20 +693,12 @@ func (lp *launchpad) recordMacro() error {
 		return fmt.Errorf("Error scanning user input: %v", err)
 	}
 
-	// exit if no command entered
-	command := scanner.Text()
-	if len(command) < 1 {
-		b.flash(red, 1, 500)
-		return nil
-
-	}
 	// save command to button
-	b.cmd = command
+	b.cmd = scanner.Text()
 
 	// give approval
 	fmt.Println("Command set to: ", b.cmd)
-	b.flash(green, 3, 333/2)
-	b.ledOn(lp.userColor)
+	go b.flash(green, 3, 333/2)
 
 	// save new macros to file and return any error
 	return lp.saveMacros()

@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 )
 
 // set path for the csv file containing macros
-const macroFile = "./commands.csv"
+var macroFile = ".config/launchpad/commands.csv"
 
 // set 'amidi' as the linux command to use for communicating with the launchpad
 var lpCmd string = "amidi"
@@ -27,6 +28,10 @@ const defaultColor = amber
 var colors = map[string]int{"green": green, "red": red, "amber": amber, "lime": lime}
 
 func main() {
+	// set config path
+	dir, err := os.UserHomeDir()
+	macroFile = dir + "/" + macroFile
+
 	// get the launchpad struct
 	fmt.Println("Getting launchpad...")
 	lp, err := getLaunchpad()
