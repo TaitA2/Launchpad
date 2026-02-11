@@ -1,8 +1,11 @@
 package main
 
+import "log"
+
+// set 'amidi' as the linux command to use for communicating with the launchpad
 var lpCmd string = "amidi"
-var getArgs = []string{"-d", "-p", "hw:0,0,0"}
-var pushArgs = []string{"-p", "hw:0,0,0", "-S"}
+var getArgs []string
+var pushArgs []string
 
 // LED color codes
 const off = 0
@@ -11,6 +14,7 @@ const red = 3
 const amber = 13
 const lime = 39
 
+// default user color
 const defaultColor = amber
 
 // map of string color names to color codes
@@ -18,15 +22,14 @@ var colors = map[string]int{"green": green, "red": red, "amber": amber, "lime": 
 
 func main() {
 	// get the launchpad struct
-	lp := getLaunchpad()
+	lp, err := getLaunchpad()
+	if err != nil {
+		log.Fatalf("Error getting launchpad: %v", err)
+	}
 
 	// start launchpad
-	for range 3 {
-		lp.flashFlower()
-	}
-	err := lp.start()
-	if err != nil {
-		panic(err)
+	if err := lp.start(); err != nil {
+		log.Fatalf("Error starting launchpad: %v", err)
 	}
 
 }

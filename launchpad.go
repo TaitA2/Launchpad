@@ -34,10 +34,20 @@ type launchpad struct {
 	userColor     int            // current color selected by user
 }
 
+// function to start the launchpad
 func (lp *launchpad) start() error {
+
 	fmt.Println("Starting launchpad!")
+
+	// draw startup flower spash
+	lp.drawFlower()
+	time.Sleep(time.Second * 1)
+
+	// clear LEDs and enable color selector pallette
 	lp.allOff()
 	lp.pallette()
+
+	// start listening for button events
 	go lp.listen()
 	prevLayer := 0
 	lp.topButtons[lp.layer].ledOn(lp.userColor)
@@ -62,10 +72,15 @@ func (lp *launchpad) start() error {
 }
 
 // function to return launchpad struct
-func getLaunchpad() *launchpad {
+func getLaunchpad() (*launchpad, error) {
 
 	// initialise launchpad
 	var lp launchpad
+
+	// get path to midi device
+	if err := getMidi(); err != nil {
+		return nil, err
+	}
 
 	// initialise button arrays
 	lp.topButtons = make([]*button, 8)
@@ -86,7 +101,31 @@ func getLaunchpad() *launchpad {
 	lp.getLayerCMDs()
 
 	// return a pointer to the launchpad
-	return &lp
+	return &lp, nil
+}
+
+// function to set the midi path used by the launchpad
+func getMidi() error {
+	cmd := exec.Command(lpCmd, "-l")
+	out, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("Error getting midi path to launchpad: %v", err)
+	}
+	lines := strings.Split(string(out), "\n")
+	if len(lines) < 2 {
+		return fmt.Errorf("Could not find launchpad in midi devices: %v", lines)
+	}
+	for _, line := range lines {
+		if strings.Contains(line, "Launchpad") {
+			path := strings.Split(line, " ")[2]
+			fmt.Println("Found path for launchpad as: ", path)
+			getArgs = []string{"-p", path, "-d"}
+			pushArgs = []string{"-p", path, "-S"}
+			return nil
+		}
+	}
+
+	return fmt.Errorf("Could not find midi path for launchpad")
 }
 
 func (lp *launchpad) getLayerCMDs() {
@@ -94,7 +133,7 @@ func (lp *launchpad) getLayerCMDs() {
 	lp.layerCMDs[FREEZE] = lp.freeze
 	lp.layerCMDs[PAINT] = lp.paint
 	lp.layerCMDs[BREATHE] = lp.breathe
-	lp.layerCMDs[ALL] = lp.explodeOn
+	lp.layerCMDs[ALL] = lp.gridOn
 	lp.layerCMDs[MACRO] = lp.macro
 }
 
@@ -407,8 +446,11 @@ func (lp *launchpad) paint() error {
 
 // function to setup the paint environment
 func (lp *launchpad) pallette() {
+
 	// turn off all LEDs
 	lp.gridOff()
+
+	// initialise the current color as the default color
 	lp.userColor = defaultColor
 
 	// set right buttons as color pallette
