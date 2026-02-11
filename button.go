@@ -55,6 +55,7 @@ func (b *button) ledOff() error {
 
 // function to flash a buttons LED n times
 func (b *button) flash(color int, n int, delay int) error {
+	oldColor := b.color
 	// repeat n times
 	for range n {
 		// on
@@ -68,6 +69,7 @@ func (b *button) flash(color int, n int, delay int) error {
 		}
 		time.Sleep(time.Millisecond * time.Duration(delay))
 	}
+	b.ledOn(oldColor)
 	return nil
 }
 
@@ -98,7 +100,7 @@ func (b *button) execute() error {
 	// run command
 	if err := cmd.Start(); err != nil {
 		// flash red and return error
-		b.flash(red, 3, 333)
+		go b.flash(red, 3, 333)
 		return fmt.Errorf("Error starting linux cmd: %v", err)
 	}
 

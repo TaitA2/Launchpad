@@ -5,6 +5,9 @@ import (
 	"log"
 )
 
+// set path for the csv file containing macros
+const macroFile = "./commands.csv"
+
 // set 'amidi' as the linux command to use for communicating with the launchpad
 var lpCmd string = "amidi"
 var getArgs []string
