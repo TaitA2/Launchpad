@@ -61,7 +61,7 @@ func (lp *launchpad) start() error {
 		}
 		if prevLayer != lp.layer {
 			fmt.Printf("Switching to layer: %d!\n", lp.layer)
-			if !((lp.layer == FREEZE) || (lp.layer == PAINT && prevLayer == FREEZE)) {
+			if lp.layer != FREEZE && lp.layer != PAINT {
 				lp.gridOff()
 			}
 			// lp.topButtons[prevLayer].ledOff()
@@ -98,7 +98,7 @@ func getLaunchpad() (*launchpad, error) {
 	}
 
 	// get layer functions
-	lp.getLayerCMDs()
+	lp.setLayerCMDs()
 
 	// return a pointer to the launchpad
 	return &lp, nil
@@ -106,29 +106,48 @@ func getLaunchpad() (*launchpad, error) {
 
 // function to set the midi path used by the launchpad
 func getMidi() error {
+
+	// list midi devices
 	cmd := exec.Command(lpCmd, "-l")
 	out, err := cmd.Output()
 	if err != nil {
 		return fmt.Errorf("Error getting midi path to launchpad: %v", err)
 	}
+
+	// split output into seperate lines
 	lines := strings.Split(string(out), "\n")
 	if len(lines) < 2 {
+		// error if no devices foudn
 		return fmt.Errorf("Could not find launchpad in midi devices: %v", lines)
 	}
+
+	// iterate through output
 	for _, line := range lines {
+		// iterate through line containing 'Launchpad'
 		if strings.Contains(line, "Launchpad") {
-			path := strings.Split(line, " ")[2]
-			fmt.Println("Found path for launchpad as: ", path)
-			getArgs = []string{"-p", path, "-d"}
-			pushArgs = []string{"-p", path, "-S"}
-			return nil
+			for s := range strings.SplitSeq(line, " ") {
+
+				// find path in format "hw:x,x,x"
+				if strings.Contains(s, "hw") {
+					// set global variables
+					path := s
+					getArgs = []string{"-p", path, "-d"}
+					pushArgs = []string{"-p", path, "-S"}
+					fmt.Println("Found path for launchpad as: ", path)
+
+					// exit without error
+					return nil
+				}
+			}
 		}
 	}
 
+	// error if not found
 	return fmt.Errorf("Could not find midi path for launchpad")
 }
 
-func (lp *launchpad) getLayerCMDs() {
+// function to set top row layers
+func (lp *launchpad) setLayerCMDs() {
 	lp.layerCMDs = make([]func() error, 8)
 	lp.layerCMDs[FREEZE] = lp.freeze
 	lp.layerCMDs[PAINT] = lp.paint
