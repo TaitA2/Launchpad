@@ -1,6 +1,9 @@
 package main
 
-import "log"
+import (
+	"fmt"
+	"log"
+)
 
 // set 'amidi' as the linux command to use for communicating with the launchpad
 var lpCmd string = "amidi"
@@ -22,6 +25,7 @@ var colors = map[string]int{"green": green, "red": red, "amber": amber, "lime": 
 
 func main() {
 	// get the launchpad struct
+	fmt.Println("Getting launchpad...")
 	lp, err := getLaunchpad()
 	if err != nil {
 		log.Fatalf("Error getting launchpad: %v", err)

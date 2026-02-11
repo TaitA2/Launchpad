@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -37,7 +39,7 @@ type launchpad struct {
 // function to start the launchpad
 func (lp *launchpad) start() error {
 
-	fmt.Println("Starting launchpad!")
+	fmt.Println("Started launchpad!")
 
 	// draw startup flower spash
 	lp.drawFlower()
@@ -51,9 +53,6 @@ func (lp *launchpad) start() error {
 	go lp.listen()
 	prevLayer := 0
 	lp.topButtons[lp.layer].ledOn(lp.userColor)
-	lp.gridButtons[0][0].setCMD("kitt -e sl")
-	lp.gridButtons[7][0].setCMD("firefox tidal.com")
-	lp.gridButtons[7][1].setCMD("firefox airtable.com")
 	for {
 		// run current layers command
 		if err := lp.layerCMDs[lp.layer](); err != nil {
@@ -103,6 +102,7 @@ func getLaunchpad() (*launchpad, error) {
 	}
 
 	// initialise button arrays
+	fmt.Println("Creating buttons...")
 	lp.topButtons = make([]*button, 8)
 	lp.rightButtons = make([]*button, 8)
 	lp.gridButtons = make([][]*button, 8)
@@ -118,14 +118,64 @@ func getLaunchpad() (*launchpad, error) {
 	}
 
 	// get layer functions
+	fmt.Println("Setting up layers...")
 	lp.setLayerCMDs()
+
+	// get macros
+	fmt.Println("Setting up macros...")
+	if err := lp.setMacros(); err != nil {
+		return nil, err
+	}
 
 	// return a pointer to the launchpad
 	return &lp, nil
 }
 
+// function to load macros
+func (lp *launchpad) setMacros() error {
+	file, err := os.Open("./commands.csv")
+	if err != nil {
+		return fmt.Errorf("Error opening commands.csv: %v", err)
+	}
+	defer file.Close()
+
+	// create new scanner
+	scanner := bufio.NewScanner(file)
+
+	// header row
+	scanner.Scan()
+
+	// command rows
+	for scanner.Scan() {
+		// get row, column, and command string
+		info := strings.Split(scanner.Text(), ",")
+		if len(info) != 3 {
+			return fmt.Errorf("Error scanning commands file, invalid line: %v", info)
+		}
+		row, err := strconv.Atoi(info[0])
+		if err != nil {
+			return fmt.Errorf("Error converting %s to a row: %v", info[0], err)
+		}
+		col, err := strconv.Atoi(info[1])
+		if err != nil {
+			return fmt.Errorf("Error converting %s to a column: %v", info[0], err)
+		}
+
+		cmd := info[2]
+
+		// set button command
+		lp.gridButtons[row][col].cmd = cmd
+		fmt.Printf("Set button at row: %d, col: %d to '%s'.\n", row, col, cmd)
+
+	}
+
+	// exit without error
+	return nil
+}
+
 // function to set the midi path used by the launchpad
 func getMidi() error {
+	fmt.Println("Finding midi port for the launchpad.")
 
 	// list midi devices
 	cmd := exec.Command(lpCmd, "-l")
