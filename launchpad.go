@@ -51,7 +51,7 @@ func (lp *launchpad) start() error {
 	go lp.listen()
 	prevLayer := 0
 	lp.topButtons[lp.layer].ledOn(lp.userColor)
-	lp.gridButtons[0][0].setCMD("kitty -e sl")
+	lp.gridButtons[0][0].setCMD("kitt -e sl")
 	lp.gridButtons[7][0].setCMD("firefox tidal.com")
 	lp.gridButtons[7][1].setCMD("firefox airtable.com")
 	for {
@@ -59,16 +59,36 @@ func (lp *launchpad) start() error {
 		if err := lp.layerCMDs[lp.layer](); err != nil {
 			return err
 		}
+		// layer has changed
 		if prevLayer != lp.layer {
 			fmt.Printf("Switching to layer: %d!\n", lp.layer)
+			// clear grid unless layer is freeze or paint
 			if lp.layer != FREEZE && lp.layer != PAINT {
 				lp.gridOff()
 			}
-			// lp.topButtons[prevLayer].ledOff()
+			// enable macro colors if new layer is macro
+			if lp.layer == MACRO {
+				lp.macroLights()
+			}
+			// update previous layer var
 			prevLayer = lp.layer
 		}
+		// enable led of current layer
 		lp.topButtons[lp.layer].ledOn(lp.userColor)
 	}
+}
+
+// function to turn on led of any buttons with a set command
+func (lp *launchpad) macroLights() error {
+	for _, row := range lp.gridButtons {
+		for _, b := range row {
+			if b.cmd != "" {
+				b.ledOn(lp.userColor)
+			}
+		}
+	}
+
+	return nil
 }
 
 // function to return launchpad struct
@@ -242,8 +262,11 @@ func (lp *launchpad) listen() error {
 				if b.x == lp.layer {
 					lp.gridOff()
 				}
+				// turn off led for old layer
 				lp.topButtons[lp.layer].ledOff()
+				// switch layer
 				lp.layer = b.x
+				// turn on led for new layer
 				lp.topButtons[lp.layer].ledOn(lp.userColor)
 			}
 			// change color for right button
@@ -257,7 +280,6 @@ func (lp *launchpad) listen() error {
 			b = lp.gridButtons[x][y]
 		}
 		b.pressed = pressed
-
 		lp.pressedButton = b
 	}
 }
@@ -524,17 +546,35 @@ func (lp *launchpad) colorDebug() {
 func (lp *launchpad) macro() error {
 	// get current button
 	b := lp.getBtn()
-	if b.pressed {
-		if b.cmd == "" {
-			b.ledOn(lp.userColor)
-		} else {
-			return b.execute()
-		}
-	} else if b.bType == GRID {
-		b.ledOff()
-	} else {
-		b.ledOn(lp.userColor)
+	if b.bType != GRID {
+		return nil
 	}
+
+	// if button has no macro
+	if b.cmd == "" {
+		// enable LED when pressed
+		if b.pressed {
+			b.ledOn(lp.userColor)
+			return nil
+		}
+		// disable LED when released
+		b.ledOff()
+		return nil
+	}
+
+	// button has a macro
+
+	// run the macro when pressed
+	if b.pressed {
+		if err := b.execute(); err != nil {
+			log.Printf("Error executing macro: %v", err)
+		}
+	}
+
+	// reset macro button color
+	b.ledOn(lp.userColor)
+
+	// exit without error
 	return nil
 }
 

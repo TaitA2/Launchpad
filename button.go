@@ -54,19 +54,19 @@ func (b *button) ledOff() error {
 }
 
 // function to flash a buttons LED n times
-func (b *button) flash(color int, n int) error {
+func (b *button) flash(color int, n int, delay int) error {
 	// repeat n times
 	for range n {
 		// on
 		if err := b.ledOn(color); err != nil {
 			return fmt.Errorf("Error flashing button: %v", err)
 		}
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Millisecond * time.Duration(delay))
 		// off
 		if err := b.ledOff(); err != nil {
 			return fmt.Errorf("Error flashing button: %v", err)
 		}
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Millisecond * time.Duration(delay))
 	}
 	return nil
 }
@@ -80,8 +80,6 @@ func (b *button) execute() error {
 	}
 
 	fmt.Println("EXECUTING COMMAND", b.cmd)
-
-	go b.flash(lime, 10)
 
 	args := strings.Split(b.cmd, " ")
 	// error if no command
@@ -98,10 +96,14 @@ func (b *button) execute() error {
 	}
 
 	// run command
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("Error executing button macro: %v", err)
+	if err := cmd.Start(); err != nil {
+		// flash red and return error
+		b.flash(red, 3, 333)
+		return fmt.Errorf("Error starting linux cmd: %v", err)
 	}
-	b.flash(green, 3)
+
+	// flash green and exit with no error
+	b.flash(green, 3, 333/2)
 	return nil
 }
 
