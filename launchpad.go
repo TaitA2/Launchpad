@@ -269,32 +269,31 @@ func (lp *launchpad) setLayerCMDs() {
 
 // function to freeze launchpad LEDs as they are
 func (lp *launchpad) freeze() error {
+
+	// get button
 	b := lp.getBtn()
+	// exit if not a grid button
 	if b.bType != GRID {
 		return nil
 	}
-	color := b.color
-	for b != nil && b.pressed {
-		if b.color == lp.userColor {
-			if b.color == lime {
-				b.ledOn(amber)
-			} else {
-				b.ledOn(lime)
-			}
 
-		} else {
-			b.ledOn(lp.userColor)
-		}
-		oldB := b
-		b = lp.getBtn()
-		if oldB != b {
-			oldB.ledOn(color)
-			color = b.color
-		}
+	// reset button when released
+	if !b.pressed {
+		return b.ledOn(b.color)
+
 	}
-	b.ledOn(color)
 
-	return nil
+	// change the LED to a different color. use negative value to not save color
+	if b.color != lp.userColor {
+		return b.ledOn(-lp.userColor) // enable LED to user color
+	}
+
+	// always use different color than current
+	if b.color == lime {
+		return b.ledOn(-amber)
+	}
+	return b.ledOn(-lime)
+
 }
 
 // function to flash all leds

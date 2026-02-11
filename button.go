@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os/exec"
 	"strings"
 	"time"
@@ -27,9 +28,10 @@ const (
 
 // function to turn led at x,y on to specified color
 func (b *button) ledOn(color int) error {
-	if color != -1 {
+	if color >= 0 {
 		b.color = color
 	}
+	color = int(math.Abs(float64(color)))
 	args := append(pushArgs, fmt.Sprintf("%s %d%d %d", b.row, b.y, b.x, color))
 	if b.bType == TOP {
 		args = append(pushArgs, fmt.Sprintf("%s %d%x %d", b.row, b.y, b.x+8, color))
