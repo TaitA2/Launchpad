@@ -259,12 +259,17 @@ func getMidi() error {
 // function to set top row layers
 func (lp *launchpad) setLayerCMDs() {
 	lp.layerCMDs = make([]func() error, 8)
+
 	lp.layerCMDs[FREEZE] = lp.freeze
 	lp.layerCMDs[PAINT] = lp.paint
 	lp.layerCMDs[BREATHE] = lp.breathe
 	lp.layerCMDs[ALL] = lp.gridOn
 	lp.layerCMDs[MACRO] = lp.macro
 	lp.layerCMDs[RECORD] = lp.recordMacro
+
+	// UNIMPLEMENTED
+	lp.layerCMDs[6] = lp.freeze
+	lp.layerCMDs[7] = lp.freeze
 }
 
 // function to freeze launchpad LEDs as they are
