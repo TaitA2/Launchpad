@@ -16,10 +16,10 @@ var pushArgs []string
 
 // LED color codes
 const off = 0
-const green = 36
 const red = 3
-const amber = 27
-const lime = 37
+const green = 48
+const amber = 35
+const lime = 50
 
 // default user color
 const defaultColor = amber

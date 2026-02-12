@@ -628,7 +628,7 @@ func (lp *launchpad) colorDebug() error {
 			// }
 			k++
 		}
-		k += 8
+		k += 12
 	}
 	// print pressed buttons color
 	b := lp.getBtn()
