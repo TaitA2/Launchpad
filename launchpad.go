@@ -111,7 +111,7 @@ func getLaunchpad() (*launchpad, error) {
 	}
 
 	// initialise button channel
-	lp.buttonChan = make(chan *button, 10)
+	lp.buttonChan = make(chan *button, 160)
 
 	// initialise button arrays
 	fmt.Println("Creating buttons...")
@@ -370,10 +370,9 @@ func (lp *launchpad) listen() error {
 			// change color for right button
 		} else if y == 8 {
 			b = lp.rightButtons[x]
-			if pressed {
-				lp.userColor = b.color
-				// fmt.Println("Switching color to", lp.userColor)
-			}
+			lp.userColor = b.color
+			// fmt.Println("Switching color to", lp.userColor)
+
 		} else {
 			b = lp.gridButtons[x][y]
 		}
@@ -589,11 +588,14 @@ func (lp *launchpad) pallette() {
 	lp.userColor = defaultColor
 
 	// set right buttons as color pallette
-	lp.rightButtons[0].ledOn(off)
-	lp.rightButtons[1].ledOn(green)
-	lp.rightButtons[2].ledOn(lime)
-	lp.rightButtons[3].ledOn(amber)
-	lp.rightButtons[4].ledOn(red)
+	lp.rightButtons[0].ledOn(0)
+	lp.rightButtons[1].ledOn(48)
+	lp.rightButtons[2].ledOn(49)
+	lp.rightButtons[3].ledOn(50)
+	lp.rightButtons[4].ledOn(51)
+	lp.rightButtons[5].ledOn(35)
+	lp.rightButtons[6].ledOn(19)
+	lp.rightButtons[7].ledOn(3)
 
 }
 
