@@ -268,7 +268,7 @@ func (lp *launchpad) setLayerCMDs() {
 	lp.layerCMDs[RECORD] = lp.recordMacro
 
 	// UNIMPLEMENTED
-	lp.layerCMDs[6] = lp.freeze
+	lp.layerCMDs[6] = lp.colorDebug
 	lp.layerCMDs[7] = lp.freeze
 }
 
@@ -614,26 +614,26 @@ func (lp *launchpad) pushTest() error {
 	return nil
 }
 
-func (lp *launchpad) colorDebug() {
-	fmt.Println("Filling colors...")
+// function to display all possible colors
+func (lp *launchpad) colorDebug() error {
+	// fill grid with colors
 	k := 0
-	for {
-		start := k
-		for i := range 8 {
-			for j := range 4 {
-				lp.gridButtons[i][j].ledOn(k)
-				k++
-			}
+	for i := range 4 {
+		for j := range 4 {
+			lp.gridButtons[i][j].ledOn(k)
+			// args := append(pushArgs, fmt.Sprintf("%s %d%d %x", gridRow, i, j, k))
+			// cmd := exec.Command(lpCmd, args...)
+			// if err := cmd.Run(); err != nil {
+			// 	return err
+			// }
+			k++
 		}
-		fmt.Printf("Showing %d - %d\n", start, k)
-		for i := range 8 {
-			for j := range 4 {
-				lp.gridButtons[i][j+4].ledOn(k)
-				k++
-			}
-		}
-		time.Sleep(time.Second * 5)
+		k += 8
 	}
+	// print pressed buttons color
+	b := lp.getBtn()
+	fmt.Printf("Dec: %d, Hex: %x\n", b.color, b.color)
+	return nil
 }
 
 // layer to execute linux cmd of button pushed
