@@ -569,9 +569,10 @@ func (lp *launchpad) paint() error {
 
 	// add color for grid button
 	if b.bType == GRID {
-		if err := b.ledOn(lp.userColor); err != nil {
-			return err
+		if lp.userColor == off {
+			return b.ledOff()
 		}
+		b.ledOn(lp.userColor)
 	}
 
 	// exit without error
@@ -623,11 +624,6 @@ func (lp *launchpad) colorDebug() error {
 	for i := range 4 {
 		for j := range 4 {
 			lp.gridButtons[i][j].ledOn(k)
-			// args := append(pushArgs, fmt.Sprintf("%s %d%d %x", gridRow, i, j, k))
-			// cmd := exec.Command(lpCmd, args...)
-			// if err := cmd.Run(); err != nil {
-			// 	return err
-			// }
 			k++
 		}
 		k += 12
