@@ -1,4 +1,7 @@
 # Programmable Novation Launchpad S 
+## About
+* An application written in Go for using the Novation Launchpad S as a programmable macro pad.
+* Created because I wanted something similar to an Elgato Streamdeck but already had a Novation Launchpad.
 
 ## Requirements
 * Novation Launchpad S
