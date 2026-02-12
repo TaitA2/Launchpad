@@ -62,7 +62,7 @@ func (b *button) flash(color int, n int, delay int) error {
 		}
 		time.Sleep(time.Millisecond * time.Duration(delay))
 		// off
-		if err := b.ledOff(); err != nil {
+		if err := b.ledOn(off); err != nil {
 			return fmt.Errorf("Error flashing button: %v", err)
 		}
 		time.Sleep(time.Millisecond * time.Duration(delay))
