@@ -706,7 +706,7 @@ func getInputFromPopup() (string, error) {
 	defer os.Remove(tempFile.Name()) // Clean up the temp file afterwards
 
 	// Launch the kitty terminal command to read user input
-	cmd := exec.Command("kitty", "--", "bash", "-c", fmt.Sprintf("read -p 'Enter command to save: ' userInput; echo $userInput > '%s'", tempFile.Name()))
+	cmd := exec.Command("kitty", "--title", "Launchpad Input", "--", "bash", "-c", fmt.Sprintf("read -p 'Enter command to save: ' userInput; echo $userInput > '%s'", tempFile.Name()))
 
 	if err := cmd.Run(); err != nil {
 		return "", err
