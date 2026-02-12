@@ -43,9 +43,6 @@ func (b *button) ledOn(color int) error {
 
 // function to turn off led at x,y
 func (b *button) ledOff() error {
-	if b.color == off {
-		return nil
-	}
 	b.color = off
 	args := append(pushArgs, fmt.Sprintf("%s %d%d 00", b.row, b.y, b.x))
 	if b.bType == TOP {

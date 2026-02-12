@@ -677,7 +677,7 @@ func (lp *launchpad) recordMacro() error {
 	}
 
 	// light LED
-	b.flash(lp.userColor, 3, 200)
+	go b.flash(lp.userColor, 3, 200)
 
 	// scan for input
 	c, err := getInputFromPopup()
@@ -690,7 +690,7 @@ func (lp *launchpad) recordMacro() error {
 
 	// give approval
 	fmt.Println("Command set to: ", b.cmd)
-	go b.flash(green, 3, 333/2)
+	defer b.flash(green, 3, 333/2)
 
 	// save new macros to file and return any error
 	return lp.saveMacros()
