@@ -676,23 +676,17 @@ func (lp *launchpad) recordMacro() error {
 		return nil
 	}
 
-	// prompt user
-	fmt.Print("Enter command to save: ")
-
 	// light LED
-	b.flash(lp.userColor, 2, 200)
-	b.ledOn(lp.userColor)
+	b.flash(lp.userColor, 3, 200)
+
 	// scan for input
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-
-	if err := scanner.Err(); err != nil {
-		b.flash(red, 3, 333)
-		return fmt.Errorf("Error scanning user input: %v", err)
+	c, err := getInputFromPopup()
+	if err != nil {
+		go b.flash(red, 3, 333/2)
+		return fmt.Errorf("Error getting user input: %v", err)
 	}
-
 	// save command to button
-	b.cmd = scanner.Text()
+	b.cmd = c
 
 	// give approval
 	fmt.Println("Command set to: ", b.cmd)
@@ -702,6 +696,31 @@ func (lp *launchpad) recordMacro() error {
 	return lp.saveMacros()
 }
 
+// Function to get input from terminal
+func getInputFromPopup() (string, error) {
+	// Create a temporary file to store user input
+	tempFile, err := os.CreateTemp("", "input.txt")
+	if err != nil {
+		return "", err
+	}
+	defer os.Remove(tempFile.Name()) // Clean up the temp file afterwards
+
+	// Launch the kitty terminal command to read user input
+	cmd := exec.Command("kitty", "--", "bash", "-c", fmt.Sprintf("read -p 'Enter command to save: ' userInput; echo $userInput > '%s'", tempFile.Name()))
+
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+
+	// Read the user input from the temporary file
+	o, err := os.ReadFile(tempFile.Name())
+	if err != nil {
+		return "", err
+	}
+	out := string(o)
+
+	return strings.Trim(out, "\n"), nil
+}
 func (lp *launchpad) drawFlower() error {
 	lp.allOff()
 	// top, bottom and middle of flower

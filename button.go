@@ -28,7 +28,7 @@ const (
 
 // function to turn led at x,y on to specified color
 func (b *button) ledOn(color int) error {
-	if color >= 0 {
+	if color > 0 {
 		b.color = color
 	}
 	color = int(math.Abs(float64(color)))
@@ -57,11 +57,10 @@ func (b *button) ledOff() error {
 
 // function to flash a buttons LED n times
 func (b *button) flash(color int, n int, delay int) error {
-	oldColor := b.color
 	// repeat n times
 	for range n {
 		// on
-		if err := b.ledOn(color); err != nil {
+		if err := b.ledOn(-color); err != nil {
 			return fmt.Errorf("Error flashing button: %v", err)
 		}
 		time.Sleep(time.Millisecond * time.Duration(delay))
@@ -71,7 +70,7 @@ func (b *button) flash(color int, n int, delay int) error {
 		}
 		time.Sleep(time.Millisecond * time.Duration(delay))
 	}
-	b.ledOn(oldColor)
+	b.ledOn(b.color)
 	return nil
 }
 

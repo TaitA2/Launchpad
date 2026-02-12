@@ -31,6 +31,8 @@ func main() {
 	// set config path
 	dir, err := os.UserHomeDir()
 	macroFile = dir + "/" + macroFile
+	// change to home dir
+	os.Chdir(dir)
 
 	// get the launchpad struct
 	fmt.Println("Getting launchpad...")
