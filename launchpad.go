@@ -359,7 +359,7 @@ func (lp *launchpad) listen() error {
 					lp.gridOff()
 				}
 				// turn off led for old layer
-				lp.topButtons[lp.layer].ledOff()
+				lp.topOff()
 				// switch layer
 				lp.layer = b.x
 				// turn on led for new layer
@@ -516,15 +516,18 @@ func (lp *launchpad) forceAllOn() error {
 	return cmd.Run()
 }
 
-// function to turn all leds on to specified color
-func (lp *launchpad) allOn() error {
-
-	// turn on all top buttons
+// function to turn off all top buttons
+func (lp *launchpad) topOff() error {
 	for _, btn := range lp.topButtons {
-		if err := btn.ledOn(lp.userColor); err != nil {
+		if err := btn.ledOff(); err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+// function to turn all leds on to specified color
+func (lp *launchpad) allOn() error {
 
 	if err := lp.rightOn(); err != nil {
 		return err
