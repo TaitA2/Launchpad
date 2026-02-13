@@ -35,7 +35,6 @@ func (b *button) ledOn(color int) error {
 	args := append(pushArgs, fmt.Sprintf("%X %d%d %X", b.row, b.y, b.x, color))
 	if b.bType == TOP {
 		args = append(pushArgs, fmt.Sprintf("%X %d%X %X", b.row, b.y, b.x+8, color))
-		fmt.Printf("%X %d%X %X\n", b.row, b.y, b.x, color)
 	}
 	cmd := exec.Command(lpCmd, args...)
 	return cmd.Run()
