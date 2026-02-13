@@ -12,8 +12,8 @@ import (
 )
 
 // top row vs grid row codes
-const topRow = "B0"
-const gridRow = "90"
+const topRow = 0xB0
+const gridRow = 0x90
 
 // layer command enum
 const (
@@ -322,15 +322,16 @@ func (lp *launchpad) breathe() error {
 // function to constantly monitor launchapd input
 func (lp *launchpad) listen() error {
 	// loop forever
+	// create midi command
+	cmd := exec.Command(lpCmd, getArgs...)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		log.Fatalf("Error creating stdout: %v", err)
+	}
+	// start the midi command
+	cmd.Start()
+	defer cmd.Process.Kill()
 	for {
-		// create midi command
-		cmd := exec.Command(lpCmd, getArgs...)
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
-			log.Fatalf("Error creating stdout: %v", err)
-		}
-		// start the midi command
-		cmd.Start()
 
 		// create buffer for the output
 		var output = make([]byte, 9)
@@ -338,9 +339,6 @@ func (lp *launchpad) listen() error {
 		for n < 9 {
 			n, _ = stdout.Read(output)
 		}
-
-		// kill the midi command process
-		cmd.Process.Kill()
 
 		// break output into parts
 		parts := strings.Split(string(output), " ")
@@ -353,7 +351,7 @@ func (lp *launchpad) listen() error {
 		pressed := parts[2] != "00"
 
 		// change layer for top button
-		if strings.Contains(row, topRow) {
+		if strings.Contains(row, fmt.Sprintf("%X", topRow)) {
 			b = lp.topButtons[y-8]
 			if pressed && b.x < len(lp.layerCMDs) {
 				// refresh grid when same layer pressed

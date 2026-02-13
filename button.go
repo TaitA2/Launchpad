@@ -10,7 +10,7 @@ import (
 
 // button struct
 type button struct {
-	row     string // topRow or gridRow
+	row     int    // topRow or gridRow
 	x       int    // collumn index
 	y       int    // row index
 	color   int    // current button color
@@ -32,9 +32,10 @@ func (b *button) ledOn(color int) error {
 		b.color = color
 	}
 	color = int(math.Abs(float64(color)))
-	args := append(pushArgs, fmt.Sprintf("%s %d%d %x", b.row, b.y, b.x, color))
+	args := append(pushArgs, fmt.Sprintf("%X %d%d %X", b.row, b.y, b.x, color))
 	if b.bType == TOP {
-		args = append(pushArgs, fmt.Sprintf("%s %d%x %x", b.row, b.y, b.x+8, color))
+		args = append(pushArgs, fmt.Sprintf("%X %d%X %X", b.row, b.y, b.x+8, color))
+		fmt.Printf("%X %d%X %X\n", b.row, b.y, b.x, color)
 	}
 	cmd := exec.Command(lpCmd, args...)
 	return cmd.Run()
@@ -44,9 +45,9 @@ func (b *button) ledOn(color int) error {
 // function to turn off led at x,y
 func (b *button) ledOff() error {
 	b.color = off
-	args := append(pushArgs, fmt.Sprintf("%s %d%d 00", b.row, b.y, b.x))
+	args := append(pushArgs, fmt.Sprintf("%X %d%d 00", b.row, b.y, b.x))
 	if b.bType == TOP {
-		args = append(pushArgs, fmt.Sprintf("%s %d%x 00", b.row, b.y, b.x+8))
+		args = append(pushArgs, fmt.Sprintf("%X %d%X 00", b.row, b.y, b.x+8))
 	}
 	cmd := exec.Command(lpCmd, args...)
 	return cmd.Run()
