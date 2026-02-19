@@ -8,10 +8,8 @@
 * Go version 1.25.5 or newer
 * amidi version 1.2.15.2 or newer
 
-## Setup
-* clone this repository with `git clone https://github.com/TaitA2/Launchpad.git`
-* build the program with `go build .`
-* execute the program called `launchpad`
+## Install
+* install the program by running the command `go install github.com/TaitA2/launchpad@latest`
 
 ## Usage
 * The program includes 8 layers, controlled by the top row of buttons
