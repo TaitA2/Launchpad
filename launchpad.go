@@ -81,7 +81,7 @@ func (lp *launchpad) macroLights() error {
 	for _, row := range lp.gridButtons {
 		for _, b := range row {
 			if b.cmd != "" {
-				b.ledOn(lp.userColor)
+				b.ledOn(b.macroColor)
 			}
 		}
 	}
@@ -122,10 +122,10 @@ func getLaunchpad() (*launchpad, error) {
 	// populate button arrays with coords and default values
 	for i := range 8 {
 		lp.gridButtons[i] = make([]*button, 8)
-		lp.topButtons[i] = &button{row: topRow, x: i, y: 6, color: green, pressed: false, bType: TOP}
-		lp.rightButtons[i] = &button{row: gridRow, x: 8, y: i, color: green, pressed: false, bType: RIGHT}
+		lp.topButtons[i] = &button{row: topRow, x: i, y: 6, color: defaultColor, macroColor: defaultColor, pressed: false, bType: TOP}
+		lp.rightButtons[i] = &button{row: gridRow, x: 8, y: i, color: defaultColor, macroColor: defaultColor, pressed: false, bType: RIGHT}
 		for j := range 8 {
-			lp.gridButtons[i][j] = &button{row: gridRow, x: j, y: i, color: green, pressed: false, bType: GRID}
+			lp.gridButtons[i][j] = &button{row: gridRow, x: j, y: i, color: defaultColor, macroColor: defaultColor, pressed: false, bType: GRID}
 		}
 	}
 
@@ -161,7 +161,7 @@ func (lp *launchpad) getMacros() error {
 	for scanner.Scan() {
 		// get row, column, and command string
 		info := strings.Split(scanner.Text(), ",")
-		if len(info) != 3 {
+		if len(info) != 4 {
 			return fmt.Errorf("Error scanning commands file, invalid line: %v", info)
 		}
 		row, err := strconv.Atoi(info[0])
@@ -172,11 +172,16 @@ func (lp *launchpad) getMacros() error {
 		if err != nil {
 			return fmt.Errorf("Error converting %s to a column: %v", info[0], err)
 		}
+		color, err := strconv.Atoi(info[2])
+		if err != nil {
+			return fmt.Errorf("Error converting %s to a color: %v", info[0], err)
+		}
 
-		cmd := info[2]
+		cmd := info[3]
 
 		// set button command
 		lp.gridButtons[row][col].cmd = cmd
+		lp.gridButtons[row][col].macroColor = color
 		fmt.Printf("Set button at row: %d, col: %d to '%s'.\n", row, col, cmd)
 
 	}
@@ -192,7 +197,7 @@ func (lp *launchpad) saveMacros() error {
 		return fmt.Errorf("Error opening macro file: %v", err)
 	}
 	defer file.Close()
-	if _, err := fmt.Fprint(file, "row,column,cmd\n"); err != nil {
+	if _, err := fmt.Fprint(file, "row,column,color,cmd\n"); err != nil {
 		return fmt.Errorf("Error writing macro file header: %v", err)
 	}
 
@@ -200,7 +205,7 @@ func (lp *launchpad) saveMacros() error {
 	for i, row := range lp.gridButtons {
 		for j, b := range row {
 			if b.cmd != "" {
-				if _, err := fmt.Fprintf(file, "%d,%d,%s\n", i, j, b.cmd); err != nil {
+				if _, err := fmt.Fprintf(file, "%d,%d,%d,%s\n", i, j, b.macroColor, b.cmd); err != nil {
 					return fmt.Errorf("Error writing to macro file: %v", err)
 				}
 			}
@@ -691,6 +696,7 @@ func (lp *launchpad) recordMacro() error {
 	}
 	// save command to button
 	b.cmd = c
+	b.macroColor = lp.userColor
 
 	// give approval
 	fmt.Println("Command set to: ", b.cmd)

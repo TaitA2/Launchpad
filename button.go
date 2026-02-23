@@ -10,13 +10,14 @@ import (
 
 // button struct
 type button struct {
-	row     int    // topRow or gridRow
-	x       int    // collumn index
-	y       int    // row index
-	color   int    // current button color
-	bType   int    // 0: top, 1: right, 2: grid
-	pressed bool   // currently held down
-	cmd     string // linux command executed when button gets pressed
+	row        int    // topRow or gridRow
+	x          int    // collumn index
+	y          int    // row index
+	color      int    // current button color
+	macroColor int    // saved macro led color
+	bType      int    // 0: top, 1: right, 2: grid
+	pressed    bool   // currently held down
+	cmd        string // linux command executed when button gets pressed
 }
 
 // button types enum
