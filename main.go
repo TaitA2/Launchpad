@@ -59,7 +59,7 @@ func setConfig() error {
 
 	// create the file
 	if _, err := os.Stat(macroFile); errors.Is(err, os.ErrNotExist) {
-		if err := os.Mkdir(homeDir+"/"+macroDir, 0777); err != nil {
+		if err := os.Mkdir(homeDir+"/"+macroDir, 0777); err != nil && !errors.Is(err, os.ErrExist) {
 			return fmt.Errorf("Error creating config directory: %v", err)
 		}
 		f, err := os.Create(macroFile)
