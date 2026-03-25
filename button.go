@@ -92,7 +92,9 @@ func (b *button) execute() error {
 	cmd := exec.Command("bash", "-c", b.cmd)
 
 	// run command
-	if err := cmd.Start(); err != nil {
+	err := cmd.Start()
+	go cmd.Wait()
+	if err != nil {
 		// flash red and return error
 		go b.flash(red, 3, 333)
 		return fmt.Errorf("Error starting linux cmd: %v", err)
