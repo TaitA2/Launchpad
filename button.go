@@ -89,12 +89,7 @@ func (b *button) execute() error {
 	}
 
 	// set button command
-	var cmd *exec.Cmd
-	if len(args) == 1 {
-		cmd = exec.Command(args[0])
-	} else {
-		cmd = exec.Command(args[0], args[1:]...)
-	}
+	cmd := exec.Command("bash", "-c", b.cmd)
 
 	// run command
 	if err := cmd.Start(); err != nil {

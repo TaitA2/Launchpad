@@ -694,6 +694,9 @@ func (lp *launchpad) recordMacro() error {
 		go b.flash(red, 3, 333/2)
 		return fmt.Errorf("Error getting user input: %v", err)
 	}
+	// delimit nested shell commands
+	c = strings.ReplaceAll(c, "$(", "\"$(")
+	c = strings.ReplaceAll(c, ")", ")\"")
 	// save command to button
 	b.cmd = c
 	b.macroColor = lp.userColor
