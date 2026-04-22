@@ -17,12 +17,14 @@ const gridRow = 0x90
 
 // layer command enum
 const (
-	FREEZE = iota
-	PAINT
+	ALL = iota
 	BREATHE
-	ALL
-	MACRO
+	DEBUG
+	OTHER
+	PAINT
 	RECORD
+	MACRO
+	FREEZE
 )
 
 // launchpad struct
@@ -52,7 +54,7 @@ func (lp *launchpad) start() error {
 	// start listening for button events
 	go lp.listen()
 	prevLayer := 0
-	lp.topButtons[lp.layer].ledOn(lp.userColor)
+	lp.rightButtons[lp.layer].ledOn(lp.userColor)
 	for {
 		// run current layers command
 		if err := lp.layerCMDs[lp.layer](); err != nil {
@@ -72,7 +74,7 @@ func (lp *launchpad) start() error {
 			prevLayer = lp.layer
 		}
 		// enable led of current layer
-		lp.topButtons[lp.layer].ledOn(lp.userColor)
+		lp.rightButtons[lp.layer].ledOn(lp.userColor)
 	}
 }
 
@@ -104,6 +106,9 @@ func getLaunchpad() (*launchpad, error) {
 
 	// initialise launchpad
 	var lp launchpad
+
+	// set starting layer to 7 (bottom of right row)
+	lp.layer = 7
 
 	// get path to midi device
 	if err := getMidi(); err != nil {
@@ -265,16 +270,16 @@ func getMidi() error {
 func (lp *launchpad) setLayerCMDs() {
 	lp.layerCMDs = make([]func() error, 8)
 
-	lp.layerCMDs[FREEZE] = lp.freeze
-	lp.layerCMDs[PAINT] = lp.paint
-	lp.layerCMDs[BREATHE] = lp.breathe
 	lp.layerCMDs[ALL] = lp.gridOn
-	lp.layerCMDs[MACRO] = lp.macro
+	lp.layerCMDs[BREATHE] = lp.breathe
+	lp.layerCMDs[PAINT] = lp.paint
 	lp.layerCMDs[RECORD] = lp.recordMacro
+	lp.layerCMDs[MACRO] = lp.macro
+	lp.layerCMDs[FREEZE] = lp.freeze
 
 	// UNIMPLEMENTED
-	lp.layerCMDs[6] = lp.colorDebug
-	lp.layerCMDs[7] = lp.freeze
+	lp.layerCMDs[DEBUG] = lp.colorDebug
+	lp.layerCMDs[OTHER] = lp.freeze
 }
 
 // function to freeze launchpad LEDs as they are
@@ -358,22 +363,23 @@ func (lp *launchpad) listen() error {
 		// change layer for top button
 		if strings.Contains(row, fmt.Sprintf("%X", topRow)) {
 			b = lp.topButtons[y-8]
-			if pressed && b.x < len(lp.layerCMDs) {
-				// refresh grid when same layer pressed
-				if b.x == lp.layer {
-					lp.gridOff()
-				}
-				// turn off led for old layer
-				lp.topOff()
-				// switch layer
-				lp.layer = b.x
-				// turn on led for new layer
-				lp.topButtons[lp.layer].ledOn(lp.userColor)
-			}
+			lp.userColor = b.color
 			// change color for right button
 		} else if y == 8 {
 			b = lp.rightButtons[x]
-			lp.userColor = b.color
+			if pressed && b.y < len(lp.layerCMDs) {
+				// refresh grid when same layer pressed
+				if b.y == lp.layer {
+					lp.gridOff()
+				}
+				// turn off led for old layer
+				lp.rightOff()
+				// switch layer
+				lp.layer = b.y
+				// turn on led for new layer
+				lp.rightButtons[lp.layer].ledOn(lp.userColor)
+			}
+			// fmt.Println(b, "Pressed!")
 			// fmt.Println("Switching color to", lp.userColor)
 
 		} else {
@@ -595,14 +601,14 @@ func (lp *launchpad) pallette() {
 	lp.userColor = defaultColor
 
 	// set right buttons as color pallette
-	lp.rightButtons[0].ledOn(0)
-	lp.rightButtons[1].ledOn(48)
-	lp.rightButtons[2].ledOn(49)
-	lp.rightButtons[3].ledOn(50)
-	lp.rightButtons[4].ledOn(51)
-	lp.rightButtons[5].ledOn(35)
-	lp.rightButtons[6].ledOn(19)
-	lp.rightButtons[7].ledOn(3)
+	lp.topButtons[0].ledOn(0)
+	lp.topButtons[1].ledOn(48)
+	lp.topButtons[2].ledOn(49)
+	lp.topButtons[3].ledOn(50)
+	lp.topButtons[4].ledOn(51)
+	lp.topButtons[5].ledOn(35)
+	lp.topButtons[6].ledOn(19)
+	lp.topButtons[7].ledOn(3)
 
 }
 
