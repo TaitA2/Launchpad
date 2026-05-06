@@ -101,7 +101,7 @@ func (b *button) execute() error {
 	}
 
 	// flash green and exit with no error
-	b.flash(green, 3, 333/2)
+	go b.flash(green, 3, 333/2)
 	return nil
 }
 
