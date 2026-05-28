@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"os/exec"
 	"strings"
 	"time"
@@ -29,14 +28,21 @@ const (
 
 // function to turn led at x,y on to specified color
 func (b *button) ledOn(color int) error {
+
+	// allow the use of non positive values as temporary colors (including 0 for off)
 	if color > 0 {
 		b.color = color
+	} else {
+		color *= -1
 	}
-	color = int(math.Abs(float64(color)))
+
+	// add command arguments for target button and color
 	args := append(pushArgs, fmt.Sprintf("%X %d%d %X", b.row, b.y, b.x, color))
 	if b.bType == TOP {
 		args = append(pushArgs, fmt.Sprintf("%X %d%X %X", b.row, b.y, b.x+8, color))
 	}
+
+	// run the led on midi command
 	cmd := exec.Command(lpCmd, args...)
 	return cmd.Run()
 
@@ -44,30 +50,40 @@ func (b *button) ledOn(color int) error {
 
 // function to turn off led at x,y
 func (b *button) ledOff() error {
+
+	// save buttons color as off
 	b.color = off
+
+	// add command arguments for target button and color
 	args := append(pushArgs, fmt.Sprintf("%X %d%d 00", b.row, b.y, b.x))
 	if b.bType == TOP {
 		args = append(pushArgs, fmt.Sprintf("%X %d%X 00", b.row, b.y, b.x+8))
 	}
+
+	// run the led on midi command
 	cmd := exec.Command(lpCmd, args...)
 	return cmd.Run()
 }
 
 // function to flash a buttons LED n times
 func (b *button) flash(color int, n int, delay int) error {
-	// repeat n times
+	// repeat the flash n times
 	for range n {
+
 		// on
 		if err := b.ledOn(-color); err != nil {
 			return fmt.Errorf("Error flashing button: %v", err)
 		}
 		time.Sleep(time.Millisecond * time.Duration(delay))
+
 		// off
 		if err := b.ledOn(off); err != nil {
 			return fmt.Errorf("Error flashing button: %v", err)
 		}
 		time.Sleep(time.Millisecond * time.Duration(delay))
 	}
+
+	// return the button to its original color
 	b.ledOn(b.color)
 	return nil
 }
