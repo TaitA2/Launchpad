@@ -600,16 +600,12 @@ func (lp *launchpad) pallette() {
 	// initialise the current color as the default color
 	lp.userColor = defaultColor
 
-	// set right buttons as color pallette
-	lp.topButtons[0].ledOn(0)
-	lp.topButtons[1].ledOn(48)
-	lp.topButtons[2].ledOn(49)
-	lp.topButtons[3].ledOn(50)
-	lp.topButtons[4].ledOn(51)
-	lp.topButtons[5].ledOn(35)
-	lp.topButtons[6].ledOn(19)
-	lp.topButtons[7].ledOn(3)
-
+	// set top buttons as color pallette
+	lp.topButtons[0].ledOn(0x00)
+	for i := range 4 {
+		lp.topButtons[i+1].ledOn(0x30 + i)
+		lp.topButtons[7-i].ledOn((i * 16) + 3)
+	}
 }
 
 // function to enable LED of any button while its pushed
