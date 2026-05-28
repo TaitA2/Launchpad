@@ -26,14 +26,14 @@ const lime = 50
 // default user color
 const defaultColor = amber
 
-// map of string color names to color codes
-var colors = map[string]int{"green": green, "red": red, "amber": amber, "lime": lime}
-
+// main function
 func main() {
+
 	// setup config
 	if err := setConfig(); err != nil {
 		log.Fatalf("Error setting up config: %v", err)
 	}
+
 	// get the launchpad struct
 	fmt.Println("Getting launchpad...")
 	lp, err := getLaunchpad()
