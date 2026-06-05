@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -19,9 +20,9 @@ const gridRow = 0x90
 const (
 	ALL = iota
 	BREATHE
-	DEBUG
-	OTHER
 	PAINT
+	SEAT_RECORD
+	SEAT_REPLAY
 	RECORD
 	MACRO
 	FREEZE
@@ -70,6 +71,9 @@ func (lp *launchpad) start() error {
 			if lp.layer == RECORD {
 				go lp.macroFlash()
 			}
+			if lp.layer == SEAT_RECORD {
+				go lp.seatFlash()
+			}
 			// update previous layer var
 			prevLayer = lp.layer
 		}
@@ -91,12 +95,33 @@ func (lp *launchpad) macroLights() error {
 	return nil
 }
 
+func (lp *launchpad) seatLights() error {
+	for _, row := range lp.gridButtons {
+		for _, b := range row {
+			if b.hasSeatMacro {
+				b.ledOn(b.seatColor)
+			}
+		}
+	}
+
+	return nil
+}
+
 // function to flash grid buttons with macro command
 func (lp *launchpad) macroFlash() {
 	for lp.layer == RECORD {
 		lp.gridOff()
 		time.Sleep(time.Millisecond * 500)
 		lp.macroLights()
+		time.Sleep(time.Millisecond * 500)
+	}
+}
+
+func (lp *launchpad) seatFlash() {
+	for lp.layer == SEAT_RECORD {
+		lp.gridOff()
+		time.Sleep(time.Millisecond * 500)
+		lp.seatLights()
 		time.Sleep(time.Millisecond * 500)
 	}
 }
@@ -141,6 +166,11 @@ func getLaunchpad() (*launchpad, error) {
 	// get macros
 	fmt.Println("Setting up macros...")
 	if err := lp.getMacros(); err != nil {
+		return nil, err
+	}
+	// get seat macros
+	fmt.Println("Setting up seat macros...")
+	if err := lp.getSeatMacros(); err != nil {
 		return nil, err
 	}
 
@@ -189,6 +219,21 @@ func (lp *launchpad) getMacros() error {
 		lp.gridButtons[row][col].macroColor = color
 		fmt.Printf("Set button at row: %d, col: %d to '%s'.\n", row, col, cmd)
 
+	}
+
+	// exit without error
+	return nil
+}
+
+func (lp *launchpad) getSeatMacros() error {
+	for _, row := range lp.gridButtons {
+		for _, b := range row {
+			seatFile := fmt.Sprintf("%s/seatFiles/%d%d-keyboard", macroDir, b.x, b.y)
+			if _, err := os.Stat(seatFile); !errors.Is(err, os.ErrNotExist) {
+				b.hasSeatMacro = true
+				b.seatColor = defaultColor
+			}
+		}
 	}
 
 	// exit without error
@@ -278,8 +323,8 @@ func (lp *launchpad) setLayerCMDs() {
 	lp.layerCMDs[FREEZE] = lp.freeze
 
 	// UNIMPLEMENTED
-	lp.layerCMDs[DEBUG] = lp.colorDebug
-	lp.layerCMDs[OTHER] = lp.freeze
+	lp.layerCMDs[SEAT_RECORD] = lp.recordSeat
+	lp.layerCMDs[SEAT_REPLAY] = lp.seatReplay
 }
 
 // function to freeze launchpad LEDs as they are
@@ -776,5 +821,60 @@ func (lp *launchpad) flashFlower() error {
 	lp.forceAllOff()
 	time.Sleep(time.Millisecond * 200)
 
+	return nil
+}
+
+func (lp *launchpad) recordSeat() error {
+	// get current button
+	b := lp.getBtn()
+	if b.bType != GRID || !b.pressed {
+		return nil
+	}
+
+	// light LED
+	go b.flash(lp.userColor, 3, 200)
+
+	go b.recordSeat()
+
+	b.seatColor = lp.userColor
+
+	defer b.flash(green, 3, 333/2)
+
+	return nil
+}
+
+func (lp *launchpad) seatReplay() error {
+	lp.seatLights()
+	// get current button
+	b := lp.getBtn()
+	if b.bType != GRID {
+		return nil
+	}
+
+	// if button has no macro
+	if !b.hasSeatMacro {
+		// enable LED when pressed
+		if b.pressed {
+			b.ledOn(lp.userColor)
+			return nil
+		}
+		// disable LED when released
+		b.ledOff()
+		return nil
+	}
+
+	// button has a macro
+
+	// run the macro when pressed
+	if b.pressed {
+		if err := b.executeSeat(); err != nil {
+			log.Printf("Error executing seat macro: %v", err)
+		}
+	}
+
+	// reset macro button color
+	b.ledOn(lp.userColor)
+
+	// exit without error
 	return nil
 }

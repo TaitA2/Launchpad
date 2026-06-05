@@ -9,14 +9,16 @@ import (
 
 // button struct
 type button struct {
-	row        int    // topRow or gridRow
-	x          int    // collumn index
-	y          int    // row index
-	color      int    // current button color
-	macroColor int    // saved macro led color
-	bType      int    // 0: top, 1: right, 2: grid
-	pressed    bool   // currently held down
-	cmd        string // linux command executed when button gets pressed
+	row          int    // topRow or gridRow
+	x            int    // collumn index
+	y            int    // row index
+	color        int    // current button color
+	macroColor   int    // saved macro led color
+	seatColor    int    // saved seat led color
+	hasSeatMacro bool   //
+	bType        int    // 0: top, 1: right, 2: grid
+	pressed      bool   // currently held down
+	cmd          string // linux command executed when button gets pressed
 }
 
 // button types enum
@@ -125,5 +127,37 @@ func (b *button) execute() error {
 func (b *button) setCMD(command string) error {
 	b.cmd = command
 	fmt.Printf("Set button %d%d command to %s\n", b.x, b.y, b.cmd)
+	return nil
+}
+
+func (b *button) executeSeat() error {
+
+	if !b.hasSeatMacro {
+		return nil
+	}
+
+	seatFile := fmt.Sprintf("%s/seatFiles/%d%d", macroDir, b.x, b.y)
+
+	cmd := exec.Command("seat-replay", seatFile)
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("Error running seat replay: %v", err)
+	}
+
+	return nil
+}
+
+func (b *button) recordSeat() error {
+	b.hasSeatMacro = true
+	b.seatColor = green
+
+	seatFile := fmt.Sprintf("%s/seatFiles/%d%d", macroDir, b.x, b.y)
+
+	cmd := exec.Command("seat-record", seatFile)
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("Error running seat record: %v", err)
+	}
+
 	return nil
 }
