@@ -7,6 +7,7 @@
 * Novation Launchpad S
 * Go version 1.25.5 or newer
 * amidi version 1.2.15.2 or newer
+* kitty version 0.47.1 or newer
 
 ## Install
 * install using go by running `go install github.com/TaitA2/launchpad@latest` in your terminal
