@@ -44,15 +44,17 @@ func (lp *launchpad) start() error {
 	fmt.Println("Started launchpad!")
 
 	// draw startup flower spash
+	lp.forceAllOff()
 	lp.drawFlower()
 	time.Sleep(time.Second * 1)
 
 	// clear LEDs and enable color selector pallette
-	lp.allOff()
+	lp.implodeOff()
 	lp.pallette()
 
 	// start listening for button events
 	go lp.listen()
+	lp.drawFlower()
 	prevLayer := 0
 	lp.rightButtons[lp.layer].ledOn(lp.userColor)
 	for {
@@ -737,7 +739,7 @@ func getInputFromPopup() (string, error) {
 	return strings.Trim(out, "\n"), nil
 }
 func (lp *launchpad) drawFlower() error {
-	lp.allOff()
+	lp.implodeOff()
 	// top, bottom and middle of flower
 	for k := range 2 {
 		// lime core
